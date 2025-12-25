@@ -257,7 +257,16 @@ function rewriteWasmImports(): Plugin {
 
 // Validate that a copied WASM module file has all expected exports
 function validateWasmModuleExports(filePath: string, moduleName: string): void {
+  if (!existsSync(filePath)) {
+    throw new Error(`Module ${moduleName} validation failed: File does not exist at ${filePath}`);
+  }
+  
   const content = readFileSync(filePath, 'utf-8');
+  
+  // Verify file has content
+  if (!content || content.length === 0) {
+    throw new Error(`Module ${moduleName} validation failed: File is empty at ${filePath}`);
+  }
   
   // Define expected exports for each module
   const expectedExports: Record<string, string[]> = {
@@ -277,16 +286,27 @@ function validateWasmModuleExports(filePath: string, moduleName: string): void {
   const missingExports: string[] = [];
   for (const exportName of expected) {
     // Check for export function exportName or export const exportName
-    const exportPattern = new RegExp(`export\\s+(function|const|let|var)\\s+${exportName}\\s*[=(]`, 'g');
+    // Don't use global flag with test() - create new regex each time to avoid state issues
+    // Pattern: export function exportName( or export const exportName = or export let exportName =
+    const exportPattern = new RegExp(`export\\s+(function|const|let|var)\\s+${exportName}\\s*[=(]`);
     if (!exportPattern.test(content)) {
       missingExports.push(exportName);
     }
   }
   
   if (missingExports.length > 0) {
+    // Find what exports are actually present for better debugging
+    const actualExports = content.match(/export\s+(function|const|let|var)\s+(\w+)\s*[=(]/g) || [];
+    const actualExportNames = actualExports.map(exp => {
+      const match = exp.match(/export\s+(?:function|const|let|var)\s+(\w+)/);
+      return match ? match[1] : '';
+    }).filter(Boolean);
+    
     throw new Error(
       `Module ${moduleName} is missing required exports: ${missingExports.join(', ')}. ` +
-      `File: ${filePath}`
+      `File: ${filePath}. ` +
+      `File size: ${content.length} bytes. ` +
+      `Actual exports found: ${actualExportNames.join(', ') || 'none'}`
     );
   }
   
@@ -338,28 +358,55 @@ function copyWasmModules(): Plugin {
     },
     buildEnd() {
       // Also run in buildEnd as a fallback to ensure copy happens
+      // This is needed in case writeBundle didn't run or dist/ wasn't created yet
       const pkgDir = resolve(__dirname, 'pkg');
       const distPkgDir = resolve(__dirname, 'dist', 'pkg');
 
-      if (existsSync(pkgDir) && !existsSync(distPkgDir)) {
-        console.log(`[copy-wasm-modules] Fallback: Copying pkg/ directory in buildEnd hook`);
-        const entries = readdirSync(pkgDir, { withFileTypes: true });
-        for (const entry of entries) {
-          if (entry.isDirectory()) {
-            const moduleName = entry.name;
-            copyDir(
-              join(pkgDir, moduleName),
-              join(distPkgDir, moduleName),
-              moduleName
-            );
-            
-            // Validate the copied JS file
-            const jsFilePath = join(distPkgDir, moduleName, `${moduleName}.js`);
-            if (existsSync(jsFilePath)) {
-              validateWasmModuleExports(jsFilePath, moduleName);
+      // Only run if pkg exists but dist/pkg doesn't (writeBundle didn't copy)
+      // OR if dist/pkg exists but is empty (writeBundle may have failed)
+      if (existsSync(pkgDir)) {
+        const distPkgExists = existsSync(distPkgDir);
+        const distPkgEmpty = distPkgExists && readdirSync(distPkgDir, { withFileTypes: true }).length === 0;
+        
+        if (!distPkgExists || distPkgEmpty) {
+          if (distPkgEmpty) {
+            console.log(`[copy-wasm-modules] Fallback: dist/pkg exists but is empty, copying in buildEnd hook`);
+            rmSync(distPkgDir, { recursive: true, force: true });
+          } else {
+            console.log(`[copy-wasm-modules] Fallback: dist/pkg doesn't exist, copying in buildEnd hook`);
+          }
+          
+          const entries = readdirSync(pkgDir, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory()) {
+              const moduleName = entry.name;
+              copyDir(
+                join(pkgDir, moduleName),
+                join(distPkgDir, moduleName),
+                moduleName
+              );
+              
+              // Validate the copied JS file - but only if it exists and has content
+              const jsFilePath = join(distPkgDir, moduleName, `${moduleName}.js`);
+              if (existsSync(jsFilePath)) {
+                // Add error handling with file content logging for debugging
+                try {
+                  validateWasmModuleExports(jsFilePath, moduleName);
+                } catch (error) {
+                  // If validation fails, log the file content for debugging
+                  const fileContent = readFileSync(jsFilePath, 'utf-8');
+                  console.error(`[copy-wasm-modules] Validation failed for ${moduleName}. File size: ${fileContent.length} bytes`);
+                  console.error(`[copy-wasm-modules] First 500 chars: ${fileContent.substring(0, 500)}`);
+                  throw error;
+                }
+              } else {
+                console.warn(`[copy-wasm-modules] Warning: JS file not found at ${jsFilePath} after copy`);
+              }
             }
           }
         }
+      } else {
+        console.warn(`[copy-wasm-modules] Warning: pkg/ directory not found at ${pkgDir} in buildEnd hook`);
       }
     },
   };
