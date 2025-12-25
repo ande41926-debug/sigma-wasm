@@ -188,8 +188,12 @@ export default defineConfig({
       output: {
         format: 'es',
       },
-      // Remove external marking - let Vite process the modules so exports are available
-      // We'll rewrite import.meta.url in the copied files to use absolute paths
+      external: (id) => {
+        // Mark pkg/ directory imports as external - they should be loaded at runtime, not bundled
+        // This preserves the original module structure so exports are available
+        // We rewrite import.meta.url in the copied files to use absolute paths for WASM binary loading
+        return id.includes('/pkg/') || id.includes('\\pkg\\');
+      },
     },
   },
   server: {
