@@ -209,10 +209,15 @@ export default defineConfig({
       output: {
         format: 'es',
       },
-      // REMOVED external marking - Vite needs to process pkg/ modules to preserve exports
-      // When marked external, the module loads but exports aren't accessible
-      // Instead, we'll let Vite bundle them but ensure the structure is preserved
-      // The copyWasmModules plugin ensures the original files are in dist/pkg/ for WASM binary loading
+      external: (id) => {
+        // Mark pkg/ directory imports as external - they should be loaded at runtime, not bundled
+        // This preserves:
+        // 1. All exports (no tree-shaking removes calculate, process_text, get_stats)
+        // 2. import.meta.url (so WASM binary paths work correctly)
+        // The rewriteWasmImports plugin rewrites import paths to absolute /pkg/ paths
+        // The copyWasmModules plugin copies files to dist/pkg/ with rewritten WASM paths
+        return id.includes('/pkg/') || id.includes('\\pkg\\');
+      },
     },
   },
   server: {
