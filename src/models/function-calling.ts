@@ -44,23 +44,45 @@ async function customFetch(input: RequestInfo | URL, init?: RequestInit, onLog?:
   for (const proxyBase of CORS_PROXY_SERVICES) {
     try {
       const proxyUrl = proxyBase + encodeURIComponent(url);
-      const response = await fetch(proxyUrl, init);
+      if (onLog) {
+        onLog(`Trying proxy: ${proxyBase}`, 'info');
+      }
+      
+      const response = await fetch(proxyUrl, {
+        ...init,
+        redirect: 'follow',
+      });
+      
+      // Skip proxies that return error status codes
+      if (response.status >= 400 && response.status < 600) {
+        if (onLog) {
+          onLog(`Proxy ${proxyBase} returned error: ${response.status} ${response.statusText}`, 'warning');
+        }
+        continue;
+      }
+      
+      // If response looks good, return it
       if (response.ok) {
         if (onLog) {
-          onLog(`Successfully fetched via CORS proxy: ${proxyBase}`, 'success');
+          onLog(`Successfully fetched via proxy: ${proxyBase}`, 'success');
         }
         return response;
       }
-    } catch {
-      // Try next proxy - ignore errors
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      if (onLog) {
+        onLog(`Proxy ${proxyBase} failed: ${errorMsg}`, 'warning');
+      }
+      // Try next proxy
       continue;
     }
   }
   
-  // If all proxies fail, try direct fetch
   if (onLog) {
-    onLog('All CORS proxies failed, trying direct fetch...', 'warning');
+    onLog('All CORS proxies failed, trying direct fetch as last resort', 'warning');
   }
+  
+  // If all proxies fail, try direct fetch as last resort
   return fetch(input, init);
 }
 
