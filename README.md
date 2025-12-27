@@ -195,25 +195,270 @@ The demo combines generative art with conversational AI, creating a unique inter
 
 ---
 
+### Hello WASM - Student Template (`/hello-wasm`)
+
+A simplified template designed for students to learn from. This demo demonstrates the core WASM state management pattern used throughout the project, making it an ideal starting point for understanding Rust-WASM integration.
+
+**Technology Stack:**
+- Rust/WASM for state management
+- TypeScript for client-side integration
+- Simple HTML/CSS for UI
+
+**Features:**
+- Counter increment/decrement functionality
+- Message display and editing
+- Demonstrates `LazyLock<Mutex<State>>` pattern in Rust
+- Shows how to export functions with `#[wasm_bindgen]`
+- TypeScript integration with proper type safety
+- Route handler pattern demonstration
+
+**WASM Module:** `wasm-hello`
+
+**Key Learning Points:**
+- State management using `LazyLock<Mutex<State>>` in Rust
+- WASM bindings with `#[wasm_bindgen]`
+- TypeScript type definitions and validation
+- Route handler initialization pattern
+- UI event handling with WASM functions
+
+**Key Files:**
+- Route: [`src/routes/hello-wasm.ts`](src/routes/hello-wasm.ts)
+- Rust Source: [`wasm-hello/src/lib.rs`](wasm-hello/src/lib.rs)
+- HTML: [`pages/hello-wasm.html`](pages/hello-wasm.html)
+
+This template is intentionally simplified to serve as a learning resource. Students can extend it by adding new state fields, WASM functions, and UI elements following the established patterns.
+
+---
+
+### Babylon WFC - Wave Function Collapse 3D (`/babylon-wfc`)
+
+A 3D visualization of the Wave Function Collapse (WFC) algorithm, a procedural generation technique that creates coherent patterns from a set of rules. This demo showcases 11 different tile types rendered in 3D using BabylonJS with mesh instancing for optimal performance.
+
+**Technology Stack:**
+- Rust/WASM for WFC algorithm implementation
+- BabylonJS for 3D rendering
+- Mesh instancing for performance optimization
+- Babylon 2D UI for controls
+- Qwen 1.5-0.5B-Chat (Transformers.js) for text-to-layout generation
+
+**Features:**
+- Wave Function Collapse algorithm generating 50×50 tile grids
+- 11 distinct tile types: Grass, Floor, 4 Wall directions, 4 Corner types, and Door
+- 3D visualization with interactive camera controls
+- Mesh instancing for efficient rendering of 2500 tiles
+- Babylon 2D UI buttons for recompute and fullscreen
+- **Text-to-Layout Generation**: Enter natural language prompts (e.g., "sparse buildings", "dense clustered layout") to guide WFC generation
+- Real-time procedural generation
+
+**WASM Module:** `wasm-babylon-wfc`
+
+**Tile Types:**
+1. Grass
+2. Floor
+3. Wall (North)
+4. Wall (South)
+5. Wall (East)
+6. Wall (West)
+7. Corner (NE)
+8. Corner (NW)
+9. Corner (SE)
+10. Corner (SW)
+11. Door/Entrance
+
+**WFC Algorithm Deep Dive:**
+
+The Wave Function Collapse algorithm is a constraint-based procedural generation technique inspired by quantum mechanics. Each cell starts in a "superposition" of all possible tile types, then collapses to a single state based on constraints from neighboring cells.
+
+**Key Concepts:**
+
+1. **Superposition**: Each cell maintains a list of possible tile types (the "wave function"). Initially, all 11 tile types are possible for non-grass cells.
+
+2. **Entropy**: The number of possible tile types for a cell. Lower entropy means fewer possibilities, making the cell more "certain" about its final state. The algorithm always collapses the cell with the lowest entropy first to minimize contradictions.
+
+3. **Constraint Propagation**: When a cell is collapsed to a specific tile type, its edges define what neighboring cells can be. For example:
+   - A `WallNorth` tile has a `Floor` edge on its south side (interior)
+   - This means the cell to the south can only be tiles with a `Floor` edge on their north side
+   - All incompatible tile types are removed from the neighbor's wave function
+   - This propagation continues recursively to all affected neighbors
+
+4. **Edge Compatibility Rules**: Each tile type has four edges (North, South, East, West), and each edge has a type (`Empty`, `Wall`, `Floor`, `Grass`, `Door`). Tiles can only be adjacent if their shared edges match:
+   - `WallNorth` (South=Floor) can connect to `Floor` (North=Floor) or `Door` (North=Floor)
+   - `WallNorth` (North=Empty) connects to exterior space (grass or empty)
+   - Walls can be adjacent in the same direction (e.g., multiple `WallNorth` tiles in a row) but not in opposite directions (preventing double-thick walls)
+
+5. **Pre-Constraints**: Before WFC begins, certain cells can be "pre-collapsed" to specific tile types. This is used for:
+   - Grass regions (via Voronoi noise)
+   - Text-to-layout generation (user-specified constraints)
+   - Building seeds (for guided generation)
+
+**Two-Phase Generation:**
+
+- **Phase 1 - Voronoi Grass Generation**: 
+  - Generates 10 seed points randomly across the 50×50 grid
+  - Each cell is assigned to the region of its closest seed point
+  - Creates natural-looking, irregular grass patches
+  - Grass cells are pre-collapsed before WFC begins
+  - This prevents large uniform green quadrants and adds visual variety
+
+- **Phase 2 - WFC Collapse**: 
+  - All non-grass cells start in superposition (all 11 tile types possible)
+  - Grass cells are already collapsed, so their constraints propagate immediately
+  - Algorithm loop:
+    1. Find the uncollapsed cell with lowest entropy
+    2. If multiple cells have the same lowest entropy, pick randomly
+    3. Collapse the cell to a random valid tile type from its possibilities
+    4. Propagate constraints to all neighbors (remove incompatible tiles)
+    5. Repeat until all cells are collapsed
+  - If a cell has 0 valid possibilities (contradiction), it falls back to `Floor`
+  - After the loop, any remaining uncollapsed cells are filled with `Floor` to prevent gaps
+
+**Text-to-Layout Workflow (TileGPT-Inspired):**
+
+This feature combines natural language understanding with constraint-based generation, inspired by the [TileGPT paper](https://tilegpt.github.io/).
+
+1. **User Input**: User enters a text prompt (e.g., "sparse buildings", "dense clustered layout", "many small buildings")
+
+2. **Qwen Chat Model Generation**:
+   - Uses `Xenova/qwen1.5-0.5b-chat` (a chat-optimized model, better at instruction following than base models)
+   - Chat template format enables structured output
+   - Generates a JSON description with:
+     - `buildingDensity`: "sparse" | "medium" | "dense" (controls number of buildings)
+     - `clustering`: "clustered" | "distributed" | "random" (controls spatial distribution)
+     - `grassRatio`: number between 0.0-1.0 (percentage of grid that should be grass)
+     - `buildingSizeHint`: "small" | "medium" | "large" (hint for building dimensions)
+
+3. **Constraint Parsing**:
+   - First attempts JSON parsing (chat models are better at structured output)
+   - Falls back to regex pattern matching if JSON parsing fails
+   - Defaults to reasonable values if parsing completely fails
+
+4. **Pre-Constraint Conversion**:
+   - **Grass Regions**: Uses Voronoi-like algorithm with density based on `grassRatio`
+   - **Building Seeds**: Places building seed points based on `buildingDensity` and `clustering`:
+     - Clustered: Groups buildings into clusters
+     - Distributed: Spreads buildings evenly
+     - Random: Places buildings randomly
+   - Seeds are converted to `Floor` tile pre-constraints
+
+5. **WFC Generation**: WFC algorithm runs with pre-constraints applied, generating a detailed layout that respects the high-level constraints
+
+6. **3D Visualization**: BabylonJS renders the result with color-coded tiles and interactive camera controls
+
+**Why Qwen Chat Model?**
+
+Unlike base language models (like DistilGPT-2), Qwen is a chat model specifically fine-tuned for:
+- **Better instruction following**: Understands and follows structured prompts more reliably
+- **Structured output**: More likely to generate valid JSON when requested
+- **Contextual understanding**: Better at interpreting nuanced layout descriptions
+- **Chat template format**: Uses proper message formatting for more reliable responses
+
+This makes it ideal for converting natural language into structured constraint data.
+
+**Visual Features:**
+- **Color Coding**: Grass (green), Floor (gray), Walls (brown), Corners (dark gray), Door (orange)
+- **Camera**: Initially centered on grid with optimal viewing angle
+- **Interactive**: Mouse controls for rotation and zoom
+
+**Key Files:**
+- Route: [`src/routes/babylon-wfc.ts`](src/routes/babylon-wfc.ts)
+- Rust Source: [`wasm-babylon-wfc/src/lib.rs`](wasm-babylon-wfc/src/lib.rs)
+- HTML: [`pages/babylon-wfc.html`](pages/babylon-wfc.html)
+
+The WFC algorithm ensures that tiles are placed according to edge compatibility rules, creating visually coherent patterns. The 3D visualization uses BabylonJS mesh instancing to efficiently render thousands of tiles while maintaining smooth performance.
+
+**Architecture Patterns:**
+
+This project demonstrates several important patterns for Rust WASM integration:
+
+1. **State Management Pattern** (`LazyLock<Mutex<State>>`):
+   ```rust
+   static STATE: LazyLock<Mutex<State>> = LazyLock::new(|| Mutex::new(State::new()));
+   ```
+   - **Why?**: WASM modules are stateless by default, but many algorithms need mutable state
+   - **Learning Point**: `LazyLock` provides thread-safe lazy initialization, `Mutex` ensures safe concurrent access
+   - **Trade-off**: Mutex adds overhead but enables safe shared state in WASM
+
+2. **WASM-JS Interop Pattern**:
+   - TypeScript interfaces define expected WASM exports
+   - Runtime validation ensures type safety without type assertions
+   - Dynamic imports with validation before use
+   - **Learning Point**: Never trust dynamic imports - always validate at runtime
+
+3. **Route Handler Pattern**:
+   - Each endpoint has: route handler (TS) + HTML page + WASM module
+   - Lazy loading: WASM modules only load when route is accessed
+   - Error handling: Graceful degradation with user-friendly messages
+   - **Learning Point**: Separation of concerns makes code maintainable and testable
+
+4. **Type Safety Patterns**:
+   - Discriminated unions for tile types and edge types
+   - Type guards instead of type assertions
+   - Runtime validation before type narrowing
+   - **Learning Point**: TypeScript's type system is powerful but requires discipline to use effectively
+
+---
+
 ## Technical Architecture
 
 ### Technology Stack
 
 **Core Technologies:**
+
 - **Rust**: Systems programming language compiled to WebAssembly
+  - **Why Rust?**: Memory safety, performance, and excellent WASM tooling
+  - **Learning Point**: Rust's ownership system prevents memory bugs while compiling to efficient WASM
+  - **When to Use WASM**: For computationally intensive tasks (image processing, algorithms, game logic)
+  - **Trade-off**: WASM adds build complexity but provides near-native performance
+
 - **TypeScript**: Type-safe frontend development
+  - **Why TypeScript?**: Catches errors at compile-time, improves developer experience
+  - **Learning Point**: Strict typing prevents runtime errors and makes code more maintainable
+  - **Integration Pattern**: TypeScript interfaces define contracts with WASM modules
+
 - **Vite**: Fast build tool and dev server
+  - **Why Vite?**: Fast HMR (Hot Module Replacement), optimized production builds
+  - **Learning Point**: Vite's plugin system allows custom WASM handling and routing
+
 - **wasm-bindgen**: Rust-WASM interop
+  - **Why wasm-bindgen?**: Automatically generates JavaScript bindings from Rust code
+  - **Learning Point**: `#[wasm_bindgen]` macro exports Rust functions to JavaScript with type safety
 
 **AI/ML Frameworks:**
+
 - **ONNX Runtime Web**: For SmolVLM models (WASM/WebGPU acceleration)
+  - **Why ONNX?**: Industry-standard format, optimized inference engines
+  - **Learning Point**: ONNX models can run in browsers with hardware acceleration
+  - **Trade-off**: Larger model files but better performance than pure JavaScript
+
 - **Transformers.js**: For ViT-GPT2, DistilGPT-2, and Qwen models
+  - **Why Transformers.js?**: Easy-to-use API, automatic quantization, browser-optimized
+  - **Learning Point**: Chat models (like Qwen) are better at instruction following than base models
+  - **Trade-off**: Smaller models run faster but may have lower quality than larger models
+
 - **@huggingface/tokenizers**: Tokenization for language models
+  - **Why Separate Tokenizer?**: Consistent tokenization across different model backends
+  - **Learning Point**: Tokenization converts text to model input format
+
+**3D Rendering:**
+
+- **BabylonJS**: 3D rendering engine
+  - **Why BabylonJS?**: Full-featured, well-documented, active community
+  - **Learning Point**: Mesh instancing allows rendering thousands of objects efficiently
+  - **Performance**: Instancing reduces draw calls from 2500 to 11 (one per tile type)
 
 **Build & Deployment:**
+
 - **Docker**: Containerized builds and deployment
+  - **Why Docker?**: Reproducible builds, consistent environments
+  - **Learning Point**: Multi-stage builds optimize image size and build caching
+
 - **nginx**: Static file serving in production
+  - **Why nginx?**: Fast, reliable, good caching support
+  - **Learning Point**: Proper MIME types and caching headers are critical for WASM
+
 - **Render.com**: Hosting platform
+  - **Why Render?**: Easy Docker deployment, automatic SSL, health checks
+  - **Learning Point**: `render.yaml` enables infrastructure-as-code deployment
 
 ### WASM Modules Organization
 
@@ -225,6 +470,8 @@ The project uses a Rust workspace with multiple WASM crates, each compiled indep
 - `wasm-preprocess-image-captioning`: Image preprocessing and filters for ViT-GPT2
 - `wasm-agent-tools`: Tool functions for the agent (calculate, process_text, get_stats)
 - `wasm-fractal-chat`: Fractal generation algorithms
+- `wasm-hello`: Student template demonstrating WASM state management
+- `wasm-babylon-wfc`: Wave Function Collapse algorithm for procedural generation
 
 Each module is built using `wasm-bindgen` and optimized with `wasm-opt` for smaller binary sizes.
 
@@ -520,7 +767,9 @@ sigma-wasm/
 │   │   ├── preprocess-smolvlm-256m.ts
 │   │   ├── image-captioning.ts
 │   │   ├── function-calling.ts
-│   │   └── fractal-chat.ts
+│   │   ├── fractal-chat.ts
+│   │   ├── hello-wasm.ts
+│   │   └── babylon-wfc.ts
 │   ├── models/             # Model integration code
 │   │   ├── smolvlm.ts
 │   │   ├── smolvlm-256m.ts
@@ -536,7 +785,9 @@ sigma-wasm/
 │   ├── preprocess-smolvlm-256m.html
 │   ├── image-captioning.html
 │   ├── function-calling.html
-│   └── fractal-chat.html
+│   ├── fractal-chat.html
+│   ├── hello-wasm.html
+│   └── babylon-wfc.html
 ├── wasm-astar/             # A* pathfinding WASM crate
 │   ├── Cargo.toml
 │   └── src/lib.rs
@@ -555,12 +806,67 @@ sigma-wasm/
 ├── wasm-fractal-chat/      # Fractal generation WASM crate
 │   ├── Cargo.toml
 │   └── src/lib.rs
+├── wasm-hello/             # Student template WASM crate
+│   ├── Cargo.toml
+│   └── src/lib.rs
+├── wasm-babylon-wfc/       # Wave Function Collapse WASM crate
+│   ├── Cargo.toml
+│   └── src/lib.rs
 ├── pkg/                    # Compiled WASM modules (generated)
 │   ├── wasm_astar/
 │   ├── wasm_preprocess/
 │   ├── wasm_preprocess_256m/
 │   ├── wasm_preprocess_image_captioning/
 │   ├── wasm_agent_tools/
-│   └── wasm_fractal_chat/
+│   ├── wasm_fractal_chat/
+│   ├── wasm_hello/
+│   └── wasm_babylon_wfc/
 └── dist/                   # Production build output (gitignored)
 ```
+
+## Learning Resources
+
+### Wave Function Collapse Algorithm
+
+- **Original Paper**: [WaveFunctionCollapse by Maxim Gumin](https://github.com/mxgmn/WaveFunctionCollapse)
+- **Algorithm Explanation**: [WFC Algorithm Overview](https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/)
+- **Academic Paper**: [WaveFunctionCollapse: Constraint Solving in the Wild](https://adamsmith.as/papers/wfc_is_constraint_solving_in_the_wild.pdf)
+- **TileGPT Paper**: [Generative Design through Quality-Diversity Data Synthesis and Language Models](https://tilegpt.github.io/)
+
+### WebAssembly (WASM)
+
+- **Rust WASM Book**: [The Rust and WebAssembly Book](https://rustwasm.github.io/docs/book/)
+- **wasm-bindgen Guide**: [wasm-bindgen Documentation](https://rustwasm.github.io/wasm-bindgen/)
+- **MDN WebAssembly Guide**: [WebAssembly Concepts](https://developer.mozilla.org/en-US/docs/WebAssembly/Concepts)
+- **Performance Guide**: [WebAssembly Performance](https://web.dev/webassembly/)
+
+### BabylonJS
+
+- **Official Documentation**: [Babylon.js Documentation](https://doc.babylonjs.com/)
+- **Getting Started**: [Babylon.js Getting Started Guide](https://doc.babylonjs.com/setup/support/gettingStarted)
+- **Mesh Instancing**: [Instanced Meshes Tutorial](https://doc.babylonjs.com/features/featuresDeepDive/mesh/copies/instances)
+- **2D UI**: [Babylon.js GUI Documentation](https://doc.babylonjs.com/features/featuresDeepDive/gui/gui)
+
+### Transformers.js
+
+- **Official Documentation**: [Transformers.js Documentation](https://huggingface.co/docs/transformers.js/)
+- **GitHub Repository**: [Transformers.js on GitHub](https://github.com/xenova/transformers.js)
+- **Model Hub**: [Hugging Face Model Hub](https://huggingface.co/models)
+
+### TypeScript
+
+- **TypeScript Handbook**: [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
+- **Discriminated Unions**: [TypeScript Discriminated Unions](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions)
+- **Type Guards**: [Type Guards and Differentiating Types](https://www.typescriptlang.org/docs/handbook/2/narrowing.html#using-type-predicates)
+
+### Rust
+
+- **The Rust Book**: [The Rust Programming Language Book](https://doc.rust-lang.org/book/)
+- **Rust by Example**: [Rust by Example](https://doc.rust-lang.org/rust-by-example/)
+- **Rust WASM Working Group**: [Rust WASM WG](https://rustwasm.github.io/)
+
+### Build Tools
+
+- **Vite Documentation**: [Vite Guide](https://vitejs.dev/guide/)
+- **Docker Documentation**: [Docker Documentation](https://docs.docker.com/)
+- **Nginx Documentation**: [Nginx Documentation](https://nginx.org/en/docs/)

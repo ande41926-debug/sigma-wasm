@@ -1,5 +1,7 @@
 # Questions for AI Assistants - SmolVLM-256M Integration
 
+> **Note**: This document is historical documentation from a troubleshooting session. The issues described here may have been resolved or the approach may have changed. This document is preserved for reference and learning purposes.
+
 ## Project Overview
 
 This project integrates **SmolVLM-256M-Instruct** (a vision-language model) into a web application using:
@@ -9,6 +11,10 @@ This project integrates **SmolVLM-256M-Instruct** (a vision-language model) into
 - **Vite** for building
 
 The goal is to enable **image captioning** and **visual question answering (VQA)** in the browser.
+
+**Historical Context**: This document was created during a debugging session when the SmolVLM-256M model was generating repetitive garbage output. The questions and research directions documented here represent the investigation process. For current implementation details, see:
+- [`src/models/smolvlm-256m.ts`](src/models/smolvlm-256m.ts) - Current model integration
+- [`LEARN_FROM_MISTAKES.md`](LEARN_FROM_MISTAKES.md) - Lessons learned from this and other integrations
 
 ## Current Problem
 

@@ -19,12 +19,17 @@ services:
     buildFilter:
       paths:
         - src/**
+        # **Learning Point**: Add new WASM crate paths here so Render.com rebuilds
+        # when you change those crates. This optimizes deployment by only rebuilding
+        # when relevant files change.
         - wasm-astar/**
         - wasm-preprocess/**
         - wasm-preprocess-256m/**
         - wasm-preprocess-image-captioning/**
         - wasm-agent-tools/**
         - wasm-fractal-chat/**
+        - wasm-hello/**
+        - wasm-babylon-wfc/**
         - Cargo.toml
         - package.json
         - vite.config.ts

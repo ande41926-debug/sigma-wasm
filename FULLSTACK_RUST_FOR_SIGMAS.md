@@ -139,6 +139,8 @@ import { init as initPreprocessSmolvlm256m } from './routes/preprocess-smolvlm-2
 import { init as initImageCaptioning } from './routes/image-captioning';
 import { init as initFunctionCalling } from './routes/function-calling';
 import { init as initFractalChat } from './routes/fractal-chat';
+import { init as initHelloWasm } from './routes/hello-wasm';
+import { init as initBabylonWfc } from './routes/babylon-wfc';
 
 const routes: Map<string, RouteHandler> = new Map();
 routes.set('/astar', initAstar);
@@ -147,6 +149,8 @@ routes.set('/preprocess-smolvlm-256m', initPreprocessSmolvlm256m);
 routes.set('/image-captioning', initImageCaptioning);
 routes.set('/function-calling', initFunctionCalling);
 routes.set('/fractal-chat', initFractalChat);
+routes.set('/hello-wasm', initHelloWasm);
+routes.set('/babylon-wfc', initBabylonWfc);
 ```
 
 When a user navigates to a URL, the router:
@@ -171,6 +175,8 @@ When a user navigates to a URL, the router:
 - **`/image-captioning`**: ViT-GPT2 image captioning using Transformers.js
 - **`/function-calling`**: Function calling agent with DistilGPT-2 and WASM tools
 - **`/fractal-chat`**: Interactive chat that generates fractal images based on keywords, using Qwen1.5-0.5B-Chat and WASM fractal generation
+- **`/hello-wasm`**: Student template demonstrating WASM state management pattern for learning
+- **`/babylon-wfc`**: Wave Function Collapse algorithm with Voronoi noise for grass generation, visualized in 3D with BabylonJS. Includes text-to-layout generation using Qwen chat model for guided procedural generation
 
 💡 **Tip**: This architecture is inspired by the pattern of using WASM for efficient, low-level computations (like preprocessing for client-side LLMs) while keeping the main application logic in TypeScript.
 
@@ -219,6 +225,14 @@ wasm-fractal-chat/
 ├── Cargo.toml          # Fractal generation crate configuration
 └── src/
     └── lib.rs          # Fractal generation algorithms (Mandelbrot, Julia, etc.)
+wasm-hello/
+├── Cargo.toml          # Hello WASM student template crate configuration
+└── src/
+    └── lib.rs          # Simple WASM state management demonstration
+wasm-babylon-wfc/
+├── Cargo.toml          # Wave Function Collapse crate configuration
+└── src/
+    └── lib.rs          # WFC algorithm with Voronoi noise for grass generation
 ```
 
 🧠 **Concept Break**: Why a Workspace?
@@ -361,7 +375,9 @@ members = [
   "wasm-preprocess-256m",
   "wasm-preprocess-image-captioning",
   "wasm-agent-tools",
-  "wasm-fractal-chat"
+  "wasm-fractal-chat",
+  "wasm-hello",
+  "wasm-babylon-wfc"
 ]
 resolver = "2"
 
@@ -418,7 +434,9 @@ src/
 │   ├── preprocess-smolvlm-256m.ts  # SmolVLM-256M route handler
 │   ├── image-captioning.ts         # ViT-GPT2 image captioning route handler
 │   ├── function-calling.ts         # Function calling agent route handler
-│   └── fractal-chat.ts             # Fractal chat route handler
+│   ├── fractal-chat.ts             # Fractal chat route handler
+│   ├── hello-wasm.ts               # Hello WASM student template route handler
+│   └── babylon-wfc.ts              # Babylon WFC route handler
 ├── models/
 │   ├── smolvlm.ts                  # SmolVLM-500M model logic
 │   ├── smolvlm-256m.ts             # SmolVLM-256M model logic
@@ -476,6 +494,16 @@ When the page loads, the router:
 - **Modularity**: Each endpoint is self-contained
 - **Type Safety**: Route handlers use shared utilities for consistent WASM loading
 - **Simple**: No complex routing library needed for this use case
+- **Lazy Loading**: WASM modules are only loaded when their route is accessed, reducing initial bundle size
+- **Dynamic Imports**: Route handlers use static imports (not dynamic), but WASM modules themselves are loaded dynamically via the WASM loader
+
+**Learning Point**: The router uses a `Map<string, RouteHandler>` where each handler is an async function. When a route is matched, the handler is called, which then:
+1. Loads the WASM module (if needed) using the shared `loadWasmModule` utility
+2. Validates the module exports match expected TypeScript interfaces
+3. Initializes the module with any required parameters
+4. Sets up UI event handlers and rendering loops
+
+This pattern ensures type safety while allowing lazy loading of heavy WASM modules.
 
 ### Type Safety with Interfaces
 
@@ -792,6 +820,11 @@ fi
 ./scripts/build-wasm.sh wasm-preprocess-image-captioning pkg/wasm_preprocess_image_captioning
 ./scripts/build-wasm.sh wasm-agent-tools pkg/wasm_agent_tools
 ./scripts/build-wasm.sh wasm-fractal-chat pkg/wasm_fractal_chat
+./scripts/build-wasm.sh wasm-hello pkg/wasm_hello
+./scripts/build-wasm.sh wasm-babylon-wfc pkg/wasm_babylon_wfc
+./scripts/build-wasm.sh wasm-preprocess-image-captioning pkg/wasm_preprocess_image_captioning
+./scripts/build-wasm.sh wasm-agent-tools pkg/wasm_agent_tools
+./scripts/build-wasm.sh wasm-fractal-chat pkg/wasm_fractal_chat
 
 echo "ALL WASM MODULES BUILT SUCCESSFULLY"
 ```
@@ -864,6 +897,16 @@ pkg/
     ├── wasm_fractal_chat.js
     ├── wasm_fractal_chat.d.ts
     └── wasm_fractal_chat_bg.wasm.d.ts
+├── wasm_hello/
+│   ├── wasm_hello_bg.wasm
+│   ├── wasm_hello.js
+│   ├── wasm_hello.d.ts
+│   └── wasm_hello_bg.wasm.d.ts
+└── wasm_babylon_wfc/
+    ├── wasm_babylon_wfc_bg.wasm
+    ├── wasm_babylon_wfc.js
+    ├── wasm_babylon_wfc.d.ts
+    └── wasm_babylon_wfc_bg.wasm.d.ts
 ```
 
 Each module is self-contained with its own JavaScript bindings and type definitions.
@@ -954,6 +997,14 @@ Transformers.js is a JavaScript library that runs Hugging Face models directly i
 1. **`/image-captioning`**: Uses `Xenova/vit-gpt2-image-captioning` for image captioning
 2. **`/function-calling`**: Uses `Xenova/distilgpt2` for text generation in the Function Calling Agent
 3. **`/fractal-chat`**: Uses `Xenova/qwen1.5-0.5b-chat` for conversational AI responses when no fractal keyword is detected
+4. **`/babylon-wfc`**: Uses `Xenova/qwen1.5-0.5b-chat` for text-to-layout generation (converting natural language prompts to WFC constraints)
+
+**Learning Point**: Chat models (like Qwen) are better at instruction following and structured output than base models (like DistilGPT-2). This makes them ideal for tasks like:
+- Generating structured JSON from natural language
+- Following complex instructions
+- Understanding context and nuance
+
+The `/babylon-wfc` endpoint demonstrates this by using Qwen to convert text prompts like "sparse buildings" into structured constraint data that guides the WFC algorithm.
 
 ### How It Works
 
@@ -1057,15 +1108,19 @@ COPY wasm-preprocess-256m/Cargo.toml ./wasm-preprocess-256m/
 COPY wasm-preprocess-image-captioning/Cargo.toml ./wasm-preprocess-image-captioning/
 COPY wasm-agent-tools/Cargo.toml ./wasm-agent-tools/
 COPY wasm-fractal-chat/Cargo.toml ./wasm-fractal-chat/
+COPY wasm-hello/Cargo.toml ./wasm-hello/
+COPY wasm-babylon-wfc/Cargo.toml ./wasm-babylon-wfc/
 
 # Create dummy src files to cache dependencies
-RUN mkdir -p wasm-astar/src wasm-preprocess/src wasm-preprocess-256m/src wasm-preprocess-image-captioning/src wasm-agent-tools/src wasm-fractal-chat/src && \
+RUN mkdir -p wasm-astar/src wasm-preprocess/src wasm-preprocess-256m/src wasm-preprocess-image-captioning/src wasm-agent-tools/src wasm-fractal-chat/src wasm-hello/src wasm-babylon-wfc/src && \
     echo "fn main() {}" > wasm-astar/src/lib.rs || true && \
     echo "fn main() {}" > wasm-preprocess/src/lib.rs || true && \
     echo "fn main() {}" > wasm-preprocess-256m/src/lib.rs || true && \
     echo "fn main() {}" > wasm-preprocess-image-captioning/src/lib.rs || true && \
     echo "fn main() {}" > wasm-agent-tools/src/lib.rs || true && \
-    echo "fn main() {}" > wasm-fractal-chat/src/lib.rs || true
+    echo "fn main() {}" > wasm-fractal-chat/src/lib.rs || true && \
+    echo "fn main() {}" > wasm-hello/src/lib.rs || true && \
+    echo "fn main() {}" > wasm-babylon-wfc/src/lib.rs || true
 
 # Build dependencies (cached if Cargo.toml unchanged)
 RUN cargo build --target wasm32-unknown-unknown --release --workspace || true
@@ -1077,6 +1132,8 @@ COPY wasm-preprocess-256m ./wasm-preprocess-256m
 COPY wasm-preprocess-image-captioning ./wasm-preprocess-image-captioning
 COPY wasm-agent-tools ./wasm-agent-tools
 COPY wasm-fractal-chat ./wasm-fractal-chat
+COPY wasm-hello ./wasm-hello
+COPY wasm-babylon-wfc ./wasm-babylon-wfc
 COPY scripts ./scripts
 
 # Make build scripts executable
@@ -1277,6 +1334,8 @@ services:
         - wasm-preprocess-image-captioning/**
         - wasm-agent-tools/**
         - wasm-fractal-chat/**
+        - wasm-hello/**
+        - wasm-babylon-wfc/**
         - Cargo.toml
         - package.json
         - vite.config.ts
@@ -1457,6 +1516,381 @@ You've journeyed from Rust source code to a deployed web application. You unders
 This is a complete, production-ready stack. Every component serves a purpose, every configuration has a reason, and every line of code teaches you something about modern systems engineering.
 
 **You're now equipped to build and deploy your own full-stack Rust applications with multiple WASM modules.**
+
+---
+
+## WFC Algorithm Deep Dive
+
+The `/babylon-wfc` endpoint demonstrates a sophisticated implementation of the Wave Function Collapse algorithm with text-to-layout generation. This section provides a deep technical dive into how it works.
+
+### Wave Function Collapse Fundamentals
+
+**Core Concept**: WFC is a constraint-based procedural generation algorithm inspired by quantum mechanics. Each cell in the grid starts in a "superposition" of all possible tile types, then "collapses" to a single state based on constraints from neighboring cells.
+
+**Key Data Structures**:
+
+```rust:wasm-babylon-wfc/src/lib.rs
+// Each cell maintains a list of possible tile types
+struct WaveCell {
+    possible_tiles: Vec<TileType>,
+}
+
+// The grid state tracks both collapsed tiles and wave functions
+struct WfcState {
+    grid: [[Option<TileType>; 50]; 50],           // Collapsed tiles
+    wave: [[WaveCell; 50]; 50],                    // Wave functions (superposition)
+    pre_constraints: [[Option<TileType>; 50]; 50], // Pre-set constraints
+}
+```
+
+**Entropy Calculation**:
+
+Entropy is simply the number of possible tile types remaining for a cell:
+
+```rust
+fn entropy(&self) -> usize {
+    self.possible_tiles.len()
+}
+```
+
+**Why Lowest Entropy First?**: Collapsing cells with fewer possibilities first minimizes contradictions. If a cell only has 2 possible tiles, it's more "certain" than a cell with 10 possibilities. This greedy approach leads to more successful completions.
+
+**Constraint Propagation**:
+
+When a cell is collapsed, its edges define what neighbors can be:
+
+```rust
+fn propagate_constraints(&mut self, x: i32, y: i32) {
+    let tile = self.grid[y][x]; // The collapsed tile
+    let edges = get_tile_edges(tile);
+    
+    // For each neighbor (north, south, east, west):
+    // 1. Get the neighbor's current wave function
+    // 2. Remove all tile types whose edges don't match
+    // 3. If any tiles were removed, recursively propagate to that neighbor
+}
+```
+
+**Edge Compatibility Rules**:
+
+Each tile type has 4 edges (North, South, East, West), and each edge has a type:
+- `Empty`: Exterior space (connects to grass or other empty edges)
+- `Wall`: Connects walls in the same direction (allows wide buildings)
+- `Floor`: Interior space (connects floors, doors, wall interiors)
+- `Grass`: Natural terrain
+- `Door`: Passage (connects to floor)
+
+**Key Rule**: Walls can be adjacent in the same direction (e.g., multiple `WallNorth` tiles in a row) but NOT in opposite directions (prevents double-thick walls). This allows wide/deep buildings while maintaining single-thick walls.
+
+**Pre-Constraints System**:
+
+Pre-constraints allow external systems to set specific tiles before WFC runs:
+
+```rust
+#[wasm_bindgen]
+pub fn set_pre_constraint(x: i32, y: i32, tile_type: i32) -> bool {
+    // Sets a tile type at (x, y) before WFC begins
+    // This tile will be collapsed immediately when WFC starts
+}
+```
+
+**Use Cases**:
+1. **Voronoi Grass**: Grass regions are pre-set using Voronoi noise
+2. **Text-to-Layout**: User-specified constraints from natural language
+3. **Building Seeds**: Floor tiles placed at building seed positions
+
+**Gap Prevention**:
+
+After the main WFC loop, any remaining uncollapsed cells are filled:
+
+```rust
+// After WFC loop completes
+for y in 0..height {
+    for x in 0..width {
+        if grid[y][x].is_none() {
+            // Fill with floor as fallback
+            grid[y][x] = Some(TileType::Floor);
+        }
+    }
+}
+```
+
+This ensures no gaps remain, especially at grass borders where edge compatibility might leave cells uncollapsed.
+
+### Text-to-Layout Workflow (TileGPT-Inspired)
+
+The text-to-layout feature combines natural language understanding with constraint-based generation, inspired by the [TileGPT paper](https://tilegpt.github.io/).
+
+**Workflow Diagram**:
+
+```mermaid
+flowchart TD
+    A[User enters text prompt] --> B[Qwen Chat Model]
+    B --> C[Generate JSON layout description]
+    C --> D[Parse constraints]
+    D --> E{JSON valid?}
+    E -->|Yes| F[Extract constraints]
+    E -->|No| G[Regex fallback parsing]
+    G --> F
+    F --> H[Convert to pre-constraints]
+    H --> I[Generate grass regions<br/>Voronoi algorithm]
+    H --> J[Place building seeds<br/>Based on density/clustering]
+    I --> K[Set pre-constraints in WASM]
+    J --> K
+    K --> L[WFC generates layout]
+    L --> M[Render in BabylonJS]
+    
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+    style C fill:#fff4e1
+    style D fill:#e8f5e9
+    style H fill:#e8f5e9
+    style K fill:#f3e5f5
+    style L fill:#f3e5f5
+    style M fill:#e1f5ff
+```
+
+**Step 1: Qwen Chat Model Integration**
+
+The Qwen chat model (`Xenova/qwen1.5-0.5b-chat`) is used instead of a base model because:
+
+- **Chat Template Format**: Uses proper message formatting for structured output
+- **Better Instruction Following**: Chat models are fine-tuned to follow instructions
+- **Structured Output**: More likely to generate valid JSON when requested
+
+```typescript:src/routes/babylon-wfc.ts
+const messages = [
+  {
+    role: 'user',
+    content: `Generate a layout description for a 50x50 grid based on: "${prompt}"
+    
+    Provide a JSON object with:
+    - buildingDensity: "sparse" | "medium" | "dense"
+    - clustering: "clustered" | "distributed" | "random"
+    - grassRatio: number between 0.0 and 1.0
+    - buildingSizeHint: "small" | "medium" | "large"
+    
+    Respond with only the JSON object, no additional text.`
+  }
+];
+
+const formattedPrompt = tokenizer.apply_chat_template(messages, {
+  tokenize: false,
+  add_generation_prompt: true,
+});
+```
+
+**Step 2: Constraint Parsing**
+
+The system uses a two-stage parsing approach:
+
+1. **JSON Parsing** (preferred): Attempts to parse JSON from the model output
+2. **Regex Fallback**: If JSON parsing fails, uses regex patterns to extract values
+3. **Default Values**: If both fail, uses reasonable defaults
+
+```typescript:src/routes/babylon-wfc.ts
+function parseLayoutConstraints(output: string): LayoutConstraints {
+  // Try JSON parsing first
+  try {
+    const jsonMatch = output.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      // Validate and extract fields...
+      return constraints;
+    }
+  } catch {
+    // Fall back to regex parsing
+  }
+  
+  // Regex fallback with defaults
+  // ...
+}
+```
+
+**Step 3: Pre-Constraint Conversion**
+
+Constraints are converted to specific tile placements:
+
+```typescript:src/routes/babylon-wfc.ts
+function constraintsToPreConstraints(
+  constraints: LayoutConstraints,
+  width: number,
+  height: number
+): Array<{ x: number; y: number; tileType: TileType }> {
+  // 1. Generate grass regions using Voronoi-like algorithm
+  //    - Number of seeds based on grassRatio
+  //    - Each cell assigned to closest seed
+  //    - Cells within max distance become grass
+  
+  // 2. Place building seeds based on density and clustering
+  //    - Clustered: Group buildings into clusters
+  //    - Distributed: Spread evenly
+  //    - Random: Random placement
+  
+  // 3. Convert seeds to Floor tile pre-constraints
+  //    - Building seeds become Floor tiles
+  //    - Grass regions become Grass tiles
+  
+  return preConstraints;
+}
+```
+
+**Step 4: WFC Generation with Pre-Constraints**
+
+The WFC algorithm runs with pre-constraints applied:
+
+```rust:wasm-babylon-wfc/src/lib.rs
+// Phase 2: Apply pre-constraints
+for y in 0..height {
+    for x in 0..width {
+        if let Some(pre_tile) = pre_constraints[y][x] {
+            // Pre-collapse with constraint
+            grid[y][x] = Some(pre_tile);
+            wave[y][x].possible_tiles = vec![pre_tile];
+        }
+    }
+}
+
+// Propagate constraints from pre-collapsed cells
+// Then run normal WFC algorithm...
+```
+
+**Learning Points**:
+
+- **Why Qwen?**: Chat models are better at instruction following and structured output than base models
+- **Why Two-Stage Parsing?**: JSON is preferred but regex provides robustness
+- **Why Pre-Constraints?**: Allows high-level control while letting WFC handle details
+- **Why Voronoi for Grass?**: Creates natural-looking, irregular regions instead of uniform blocks
+
+---
+
+## Learning Path
+
+This section provides a suggested learning path for studying this codebase, organized by skill level and topic.
+
+### Prerequisites
+
+Before diving into the codebase, you should be familiar with:
+
+- **Rust Basics**: Ownership, borrowing, basic syntax
+- **TypeScript Basics**: Types, interfaces, async/await
+- **Web Fundamentals**: HTML, CSS, JavaScript, DOM APIs
+- **Command Line**: Basic terminal usage, package managers
+
+### Beginner Path
+
+**Goal**: Understand the basic WASM integration pattern
+
+1. **Start with `/hello-wasm`**:
+   - Simplest endpoint, demonstrates core patterns
+   - Study `wasm-hello/src/lib.rs` for Rust state management
+   - Study `src/routes/hello-wasm.ts` for TypeScript integration
+   - **Key Concepts**: `LazyLock<Mutex<State>>`, `#[wasm_bindgen]`, type safety
+
+2. **Study the WASM Loader**:
+   - Read `src/wasm/loader.ts` to understand module loading
+   - Read `src/wasm/types.ts` to understand type definitions
+   - **Key Concepts**: Dynamic imports, runtime validation, error handling
+
+3. **Understand the Router**:
+   - Read `src/main.ts` to see how routes are registered
+   - **Key Concepts**: Client-side routing, lazy loading, error handling
+
+### Intermediate Path
+
+**Goal**: Understand algorithm implementation and 3D rendering
+
+1. **Study `/astar`**:
+   - More complex state management
+   - Game loop pattern with `requestAnimationFrame`
+   - Canvas rendering
+   - **Key Concepts**: Game state, input handling, rendering loops
+
+2. **Study `/babylon-wfc`**:
+   - WFC algorithm implementation
+   - 3D rendering with BabylonJS
+   - Mesh instancing for performance
+   - **Key Concepts**: Constraint propagation, entropy, 3D graphics
+
+3. **Study Image Preprocessing**:
+   - Read `wasm-preprocess/src/lib.rs`
+   - Understand image manipulation in Rust
+   - **Key Concepts**: Image processing, memory management, WASM performance
+
+### Advanced Path
+
+**Goal**: Understand AI/ML integration and complex workflows
+
+1. **Study `/function-calling`**:
+   - Transformers.js integration
+   - Function calling pattern
+   - Agent architecture
+   - **Key Concepts**: LLM integration, tool calling, agent patterns
+
+2. **Study `/fractal-chat`**:
+   - Hybrid WASM + Transformers.js
+   - Chat template usage
+   - Keyword detection
+   - **Key Concepts**: Multi-technology integration, chat models
+
+3. **Study `/babylon-wfc` Text-to-Layout**:
+   - Qwen chat model integration
+   - Constraint parsing and conversion
+   - Pre-constraint system
+   - **Key Concepts**: Natural language to structured data, constraint-based generation
+
+4. **Study SmolVLM Integration**:
+   - ONNX Runtime Web
+   - Vision-language models
+   - Image preprocessing pipeline
+   - **Key Concepts**: ONNX models, vision encoders, model inference
+
+### Key Concepts by Topic
+
+**Rust WASM**:
+- State management with `LazyLock<Mutex<State>>`
+- `#[wasm_bindgen]` for JS interop
+- Memory management in WASM
+- Error handling patterns
+
+**TypeScript**:
+- Discriminated unions for type safety
+- Type guards vs type assertions
+- Dynamic import validation
+- Route handler patterns
+
+**Algorithms**:
+- A* pathfinding
+- Wave Function Collapse
+- Voronoi noise generation
+- Constraint propagation
+
+**3D Graphics**:
+- BabylonJS basics
+- Mesh instancing
+- Camera controls
+- Material and lighting
+
+**AI/ML**:
+- Transformers.js usage
+- ONNX Runtime Web
+- Chat template formatting
+- Model loading and caching
+
+### Recommended Study Order
+
+1. **Week 1**: Hello WASM + WASM Loader + Router
+2. **Week 2**: A* Pathfinding + Canvas Rendering
+3. **Week 3**: Image Preprocessing + WASM Performance
+4. **Week 4**: WFC Algorithm + 3D Rendering
+5. **Week 5**: Transformers.js + Function Calling
+6. **Week 6**: Text-to-Layout + Advanced Patterns
+
+Each week should include:
+- Reading the relevant code
+- Understanding the patterns
+- Experimenting with modifications
+- Building a small related project
 
 ---
 

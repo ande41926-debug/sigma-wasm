@@ -41,6 +41,16 @@ function devServerRouting(): Plugin {
           else if (url === '/fractal-chat' || url.startsWith('/fractal-chat?')) {
             req.url = '/pages/fractal-chat.html' + (url.includes('?') ? url.substring(url.indexOf('?')) : '');
           }
+          // Rewrite /hello-wasm to /pages/hello-wasm.html
+          // **Learning Point**: This routing is needed for the dev server.
+          // In production, nginx handles routing. Add new routes here when creating new endpoints.
+          else if (url === '/hello-wasm' || url.startsWith('/hello-wasm?')) {
+            req.url = '/pages/hello-wasm.html' + (url.includes('?') ? url.substring(url.indexOf('?')) : '');
+          }
+          // Rewrite /babylon-wfc to /pages/babylon-wfc.html
+          else if (url === '/babylon-wfc' || url.startsWith('/babylon-wfc?')) {
+            req.url = '/pages/babylon-wfc.html' + (url.includes('?') ? url.substring(url.indexOf('?')) : '');
+          }
         }
         next();
       });
@@ -501,6 +511,9 @@ export default defineConfig({
         'image-captioning': resolve(__dirname, 'pages/image-captioning.html'),
         'function-calling': resolve(__dirname, 'pages/function-calling.html'),
         'fractal-chat': resolve(__dirname, 'pages/fractal-chat.html'),
+        // **Learning Point**: Add new HTML pages here for build system to include them
+        'hello-wasm': resolve(__dirname, 'pages/hello-wasm.html'),
+        'babylon-wfc': resolve(__dirname, 'pages/babylon-wfc.html'),
       },
       output: {
         format: 'es',

@@ -29,6 +29,8 @@ RUN apk add --no-cache binaryen
 WORKDIR /app
 
 # Copy workspace Cargo.toml and member Cargo.toml files for dependency caching
+# **Learning Point**: Add new WASM crate Cargo.toml files here for Docker build caching.
+# This allows Docker to cache dependencies separately from source code changes.
 COPY Cargo.toml ./
 COPY wasm-astar/Cargo.toml ./wasm-astar/
 COPY wasm-preprocess/Cargo.toml ./wasm-preprocess/
@@ -36,29 +38,40 @@ COPY wasm-preprocess-256m/Cargo.toml ./wasm-preprocess-256m/
 COPY wasm-preprocess-image-captioning/Cargo.toml ./wasm-preprocess-image-captioning/
 COPY wasm-agent-tools/Cargo.toml ./wasm-agent-tools/
 COPY wasm-fractal-chat/Cargo.toml ./wasm-fractal-chat/
+COPY wasm-hello/Cargo.toml ./wasm-hello/
+COPY wasm-babylon-wfc/Cargo.toml ./wasm-babylon-wfc/
 
 # Add wasm32 target (must be done before building for wasm32-unknown-unknown)
 RUN rustup target add wasm32-unknown-unknown
 
 # Create dummy src files to cache dependencies
-RUN mkdir -p wasm-astar/src wasm-preprocess/src wasm-preprocess-256m/src wasm-preprocess-image-captioning/src wasm-agent-tools/src wasm-fractal-chat/src && \
+# **Learning Point**: These dummy files allow Docker to cache compiled dependencies
+# separately from source code. When you change source, only source needs rebuilding.
+# Add new crates here when creating new WASM modules.
+RUN mkdir -p wasm-astar/src wasm-preprocess/src wasm-preprocess-256m/src wasm-preprocess-image-captioning/src wasm-agent-tools/src wasm-fractal-chat/src wasm-hello/src wasm-babylon-wfc/src && \
     echo "fn main() {}" > wasm-astar/src/lib.rs || true && \
     echo "fn main() {}" > wasm-preprocess/src/lib.rs || true && \
     echo "fn main() {}" > wasm-preprocess-256m/src/lib.rs || true && \
     echo "fn main() {}" > wasm-preprocess-image-captioning/src/lib.rs || true && \
     echo "fn main() {}" > wasm-agent-tools/src/lib.rs || true && \
-    echo "fn main() {}" > wasm-fractal-chat/src/lib.rs || true
+    echo "fn main() {}" > wasm-fractal-chat/src/lib.rs || true && \
+    echo "fn main() {}" > wasm-hello/src/lib.rs || true && \
+    echo "fn main() {}" > wasm-babylon-wfc/src/lib.rs || true
 
 # Build dependencies only (for caching)
 RUN cargo build --target wasm32-unknown-unknown --release --workspace || true
 
 # Copy actual source code
+# **Learning Point**: After dependencies are cached, copy the real source code.
+# Docker will only rebuild from this point if source files change.
 COPY wasm-astar ./wasm-astar
 COPY wasm-preprocess ./wasm-preprocess
 COPY wasm-preprocess-256m ./wasm-preprocess-256m
 COPY wasm-preprocess-image-captioning ./wasm-preprocess-image-captioning
 COPY wasm-agent-tools ./wasm-agent-tools
 COPY wasm-fractal-chat ./wasm-fractal-chat
+COPY wasm-hello ./wasm-hello
+COPY wasm-babylon-wfc ./wasm-babylon-wfc
 COPY scripts ./scripts
 
 # Make build scripts executable

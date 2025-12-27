@@ -47,6 +47,17 @@ This application integrates multiple LLM approaches for different use cases, but
    - Tools: WASM-based tools (`calculate`, `process_text`, `get_stats`)
    - Endpoint: `/function-calling`
 
+4. **Fractal Chat (Transformers.js + WASM)**: Interactive Chat with Generative Art
+   - Model: `Xenova/qwen1.5-0.5b-chat` (Qwen Chat Model)
+   - WASM: Fractal generation algorithms
+   - Endpoint: `/fractal-chat`
+
+5. **Babylon WFC (Transformers.js + WASM + BabylonJS)**: Text-to-Layout Generation
+   - Model: `Xenova/qwen1.5-0.5b-chat` (Qwen Chat Model)
+   - WASM: Wave Function Collapse algorithm
+   - 3D Rendering: BabylonJS with mesh instancing
+   - Endpoint: `/babylon-wfc`
+
 ---
 
 ## Critical Production Deployment Mistakes
@@ -286,6 +297,260 @@ const result = await imageToTextPipeline(dataUrl);
 ### Function Calling Agent: DistilGPT-2 with WASM Tools
 
 **What We Learned**: Base language models (not instruction-tuned) require aggressive prompt engineering and output cleaning. Function calling with small models is possible but requires careful design.
+
+**The Mistake**: Initially expected DistilGPT-2 to generate clean function calls without extensive prompt engineering.
+
+**The Impact**: Model generated inconsistent output formats, requiring multiple parsing strategies and fallbacks.
+
+**The Solution**: 
+- Implemented structured prompt templates with examples
+- Added multiple parsing strategies (JSON, regex, pattern matching)
+- Created fallback mechanisms for when parsing fails
+- Added human-in-the-loop clarification for ambiguous goals
+
+**Key Lesson**: Base models require more hand-holding than chat models. For instruction-following tasks, prefer chat models (like Qwen) over base models (like DistilGPT-2).
+
+---
+
+### Transformers.js Learnings: Qwen Chat Model for Text-to-Layout
+
+**What We Learned**: Chat models (like Qwen) are significantly better at instruction following and structured output than base models (like DistilGPT-2).
+
+**The Mistake**: Initially considered using DistilGPT-2 for text-to-layout generation, but it struggled with generating structured JSON output.
+
+**The Impact**: Would have required extensive prompt engineering and unreliable parsing.
+
+**The Solution**: 
+- Switched to `Xenova/qwen1.5-0.5b-chat` (chat model)
+- Used chat template format for better instruction following
+- Requested JSON output directly in the prompt
+- Implemented two-stage parsing: JSON first, regex fallback
+
+**Key Learnings**:
+
+1. **Chat Template Format**: 
+   ```typescript
+   const messages = [{ role: 'user', content: prompt }];
+   const formattedPrompt = tokenizer.apply_chat_template(messages, {
+     tokenize: false,
+     add_generation_prompt: true,
+   });
+   ```
+   - Chat templates format messages properly for the model
+   - `add_generation_prompt: true` adds the assistant's turn marker
+   - This is critical for chat models to generate proper responses
+
+2. **Response Extraction**: 
+   - Chat models include the prompt in their output
+   - Must extract only the assistant's response
+   - Remove chat template tokens (`<|im_start|>`, `<|im_end|>`, etc.)
+
+3. **Structured Output**: 
+   - Chat models are better at following "respond with only JSON" instructions
+   - Still need fallback parsing (regex) for robustness
+   - Default values ensure the system works even if parsing fails
+
+4. **Model Loading Patterns**:
+   - Load models on-demand (not at page load)
+   - Show loading progress to users
+   - Cache loaded models to avoid reloading
+   - Handle loading errors gracefully
+
+**Best Practices**:
+- Use chat models for instruction-following tasks
+- Always implement fallback parsing strategies
+- Provide clear, structured prompts
+- Extract and clean model responses properly
+- Handle model loading failures gracefully
+
+---
+
+### WFC/Babylon-WFC Learnings
+
+**What We Learned**: Wave Function Collapse requires careful edge compatibility rules and gap-filling logic to prevent visual artifacts.
+
+**The Mistakes**:
+
+1. **Double-Thick Walls**: Initially, walls could be adjacent in opposite directions, creating double-thick walls that looked wrong.
+
+2. **Empty Gaps**: WFC algorithm could leave cells uncollapsed if they had 0 valid possibilities, creating gaps in the grid.
+
+3. **Camera Positioning**: Initially positioned camera at grid coordinates (25, 0, 25) instead of world coordinates (0, 0, 0).
+
+**The Impact**: 
+- Visual artifacts (double-thick walls, gaps)
+- Poor user experience (camera looking at wrong location)
+- Inconsistent generation results
+
+**The Solutions**:
+
+1. **Edge Compatibility Rules**:
+   ```rust
+   // Walls can be adjacent in same direction (for wide buildings)
+   // But NOT in opposite directions (prevents double-thick)
+   TileType::WallNorth => TileEdges::new(
+       EdgeType::Empty,  // North: exterior
+       EdgeType::Floor,  // South: interior (connects to floor)
+       EdgeType::Wall,   // East: connects to same-direction walls
+       EdgeType::Wall,   // West: connects to same-direction walls
+   ),
+   ```
+   - Same-direction walls have `Wall` edges on sides
+   - Opposite-direction walls have incompatible edges
+   - This allows wide buildings while preventing double-thick walls
+
+2. **Gap Filling**:
+   ```rust
+   // After WFC loop completes
+   for y in 0..height {
+       for x in 0..width {
+           if grid[y][x].is_none() {
+               // Fill with floor as fallback
+               grid[y][x] = Some(TileType::Floor);
+           }
+       }
+   }
+   ```
+   - Ensures all cells are filled
+   - Prevents visual gaps
+   - Uses `Floor` as safe fallback
+
+3. **Camera Positioning**:
+   ```typescript
+   // Tiles are positioned with offset: offset = -(gridSize * tileSpacing) / 2
+   // So center of grid is at (0, 0, 0) in world space
+   const gridCenter = new Vector3(0, 0, 0); // Not (25, 0, 25)!
+   ```
+   - Calculate world coordinates from tile positioning logic
+   - Account for offsets and spacing
+   - Test camera positioning visually
+
+**Key Learnings**:
+
+1. **Pre-Constraints System**: 
+   - Allows external systems to guide WFC generation
+   - Used for Voronoi grass and text-to-layout
+   - Must be applied before WFC begins
+   - Constraints propagate automatically
+
+2. **Voronoi Grass Generation**:
+   - Creates natural-looking, irregular grass patches
+   - Prevents large uniform green quadrants
+   - Number of seeds controls grass density
+   - Each cell assigned to closest seed
+
+3. **Entropy-Based Collapse**:
+   - Always collapse lowest-entropy cells first
+   - Minimizes contradictions
+   - More reliable than random collapse order
+
+4. **Constraint Propagation**:
+   - Must propagate recursively to all affected neighbors
+   - Use a queue/stack to track cells needing updates
+   - Stop when no more changes occur
+
+**Best Practices**:
+- Design edge compatibility rules carefully
+- Test with various grid sizes and constraints
+- Always fill remaining cells after WFC completes
+- Verify camera positioning matches actual tile positions
+- Use pre-constraints for guided generation
+
+---
+
+### BabylonJS Learnings
+
+**What We Learned**: 3D rendering requires careful attention to camera setup, mesh instancing, and coordinate systems.
+
+**The Mistakes**:
+
+1. **Camera Target**: Initially set camera target to grid coordinates (25, 0, 25) instead of world coordinates (0, 0, 0).
+
+2. **Camera Angle**: Initially used side view instead of top-down view for better grid visualization.
+
+3. **Mesh Instancing**: Initially considered creating 2500 separate meshes instead of using instancing.
+
+**The Impact**: 
+- Camera looking at wrong location
+- Poor viewing angle
+- Performance issues (if not using instancing)
+
+**The Solutions**:
+
+1. **Camera Setup**:
+   ```typescript
+   // Calculate actual world center from tile positioning
+   const offset = -(gridSize * tileSpacing) / 2;
+   // Center is at (0, 0, 0) in world space
+   const gridCenter = new Vector3(0, 0, 0);
+   
+   const camera = new ArcRotateCamera(
+     'camera',
+     0,    // Alpha: horizontal rotation (doesn't matter for top-down)
+     0,    // Beta: 0 = straight down (top view)
+     50,   // Radius: 50 meters above
+     gridCenter,
+     scene
+   );
+   ```
+
+2. **Mesh Instancing**:
+   ```typescript
+   // Create one base mesh per tile type (11 types)
+   const baseMeshes = new Map<TileType['type'], Mesh>();
+   
+   // Create instances for each tile (2500 instances from 11 base meshes)
+   for (const tile of tiles) {
+     const baseMesh = baseMeshes.get(tile.type);
+     const instance = baseMesh.createInstance(`tile_${x}_${y}`);
+     instance.position.set(x, 0, y);
+   }
+   ```
+   - Reduces draw calls from 2500 to 11
+   - Massive performance improvement
+   - Essential for rendering large grids
+
+3. **Material Setup**:
+   ```typescript
+   const material = new StandardMaterial(`material_${tileType}`, scene);
+   material.diffuseColor = getTileColor(tileType);
+   material.specularColor = new Color3(0.1, 0.1, 0.1); // Low specular for matte look
+   ```
+   - One material per tile type
+   - Shared across all instances
+   - Efficient memory usage
+
+**Key Learnings**:
+
+1. **Coordinate Systems**: 
+   - Grid coordinates (0-49) vs world coordinates (offset-based)
+   - Always calculate world positions from grid positions
+   - Account for spacing and offsets
+
+2. **Mesh Instancing**:
+   - Essential for rendering many similar objects
+   - Reduces draw calls dramatically
+   - Shared materials and geometry
+
+3. **Camera Controls**:
+   - ArcRotateCamera provides orbit controls
+   - Beta = 0 is straight down (top view)
+   - Radius controls distance from target
+   - Target should be actual world center
+
+4. **Babylon 2D UI**:
+   - Use `AdvancedDynamicTexture` for UI
+   - Buttons rendered within 3D canvas
+   - Better than HTML overlays for fullscreen
+
+**Best Practices**:
+- Always use mesh instancing for repeated objects
+- Calculate world coordinates from grid logic
+- Test camera positioning visually
+- Use appropriate camera angles for the content
+- Leverage Babylon 2D UI for in-canvas controls
+
+---
 
 **Model**: `Xenova/distilgpt2` (DistilGPT-2)
 **Endpoint**: `/function-calling`
@@ -602,6 +867,21 @@ Common issues:
 - **Model**: [Xenova/distilgpt2](https://huggingface.co/Xenova/distilgpt2)
 - **Transformers.js**: [Documentation](https://huggingface.co/docs/transformers.js/)
 - **DistilGPT-2 Paper**: [DistilBERT: a distilled version of BERT](https://arxiv.org/abs/1910.01108)
+
+### Qwen Chat Model
+- **Model**: [Xenova/qwen1.5-0.5b-chat](https://huggingface.co/Xenova/qwen1.5-0.5b-chat)
+- **Transformers.js**: [Documentation](https://huggingface.co/docs/transformers.js/)
+- **Qwen Paper**: [Qwen Technical Report](https://arxiv.org/abs/2309.16609)
+
+### Wave Function Collapse
+- **Original Implementation**: [WaveFunctionCollapse by Maxim Gumin](https://github.com/mxgmn/WaveFunctionCollapse)
+- **Algorithm Explanation**: [WFC Algorithm Overview](https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/)
+- **TileGPT Paper**: [Generative Design through Quality-Diversity Data Synthesis and Language Models](https://tilegpt.github.io/)
+
+### BabylonJS
+- **Official Documentation**: [Babylon.js Documentation](https://doc.babylonjs.com/)
+- **Mesh Instancing**: [Instanced Meshes Tutorial](https://doc.babylonjs.com/features/featuresDeepDive/mesh/copies/instances)
+- **2D UI**: [Babylon.js GUI Documentation](https://doc.babylonjs.com/features/featuresDeepDive/gui/gui)
 
 ---
 

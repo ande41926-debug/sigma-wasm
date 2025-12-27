@@ -5,6 +5,9 @@ import { init as initPreprocessSmolvlm256m } from './routes/preprocess-smolvlm-2
 import { init as initImageCaptioning } from './routes/image-captioning';
 import { init as initFunctionCalling } from './routes/function-calling';
 import { init as initFractalChat } from './routes/fractal-chat';
+import { init as initHelloWasm } from './routes/hello-wasm';
+import { init as initBabylonWfc } from './routes/babylon-wfc';
+import { registerServiceWorker, setupOfflineHandling } from './pwa/sw-register';
 
 type RouteHandler = () => Promise<void>;
 
@@ -17,6 +20,8 @@ routes.set('/preprocess-smolvlm-256m', initPreprocessSmolvlm256m);
 routes.set('/image-captioning', initImageCaptioning);
 routes.set('/function-calling', initFunctionCalling);
 routes.set('/fractal-chat', initFractalChat);
+routes.set('/hello-wasm', initHelloWasm);
+routes.set('/babylon-wfc', initBabylonWfc);
 
 async function route(): Promise<void> {
   const path = window.location.pathname;
@@ -53,6 +58,10 @@ async function route(): Promise<void> {
       handler = routes.get('/function-calling');
     } else if (path.includes('fractal-chat')) {
       handler = routes.get('/fractal-chat');
+    } else if (path.includes('hello-wasm')) {
+      handler = routes.get('/hello-wasm');
+    } else if (path.includes('babylon-wfc')) {
+      handler = routes.get('/babylon-wfc');
     }
   }
   
@@ -80,8 +89,21 @@ const initRouter = (): void => {
   });
 };
 
+// Initialize PWA service worker
+const initPWA = (): void => {
+  registerServiceWorker().catch((error) => {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to initialize PWA:', errorMessage);
+  });
+  setupOfflineHandling();
+};
+
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initRouter);
+  document.addEventListener('DOMContentLoaded', () => {
+    initRouter();
+    initPWA();
+  });
 } else {
   initRouter();
+  initPWA();
 }
