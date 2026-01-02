@@ -799,67 +799,61 @@ pub fn generate_voronoi_regions(
     // Generate seed points by sampling from actual hex grid coordinates
     let mut seeds: Vec<VoronoiSeed> = Vec::new();
     
-    // Helper to get a random index with fallback
-    // Uses Math::random() with a deterministic fallback if random fails
+    // Use a counter for deterministic fallback if random fails
+    // This ensures seeds are ALWAYS generated
     let mut seed_counter = 0;
-    let mut get_random_index = || -> usize {
+    
+    // Helper function to get index - tries random first, falls back to deterministic
+    // Completely inlined to avoid any closure issues
+    let mut get_index = || -> usize {
+        seed_counter += 1;
         if hex_count > 0 {
-            // Try to use Math::random() - matches pattern from wasm-fractal-chat
+            // Try Math::random() first
             let random_val = Math::random();
-            // Check if random value is valid (finite and in expected range)
-            if random_val.is_finite() && random_val >= 0.0 {
+            if random_val.is_finite() && random_val >= 0.0 && random_val < 1.0 {
                 let index = (random_val * hex_count as f64).floor() as usize;
-                // Ensure index is in valid range
                 if index < hex_count {
                     return index;
                 }
             }
-            // Fallback: use deterministic selection based on counter
-            // This ensures seeds are always generated even if random fails
-            seed_counter += 1;
-            (seed_counter * 7919) % hex_count // 7919 is a prime for better distribution
+            // Fallback: deterministic using prime multiplier for good distribution
+            (seed_counter * 7919) % hex_count
         } else {
             0
         }
     };
     
-    // Generate forest seeds
+    // Generate forest seeds - always generate even if random fails
     for _ in 0..forest_seeds {
-        if hex_count > 0 {
-            let index = get_random_index();
-            let (q, r) = hex_vec[index];
-            seeds.push(VoronoiSeed {
-                q,
-                r,
-                tile_type: TileType::Forest,
-            });
-        }
+        let index = get_index();
+        let (q, r) = hex_vec[index];
+        seeds.push(VoronoiSeed {
+            q,
+            r,
+            tile_type: TileType::Forest,
+        });
     }
     
     // Generate water seeds
     for _ in 0..water_seeds {
-        if hex_count > 0 {
-            let index = get_random_index();
-            let (q, r) = hex_vec[index];
-            seeds.push(VoronoiSeed {
-                q,
-                r,
-                tile_type: TileType::Water,
-            });
-        }
+        let index = get_index();
+        let (q, r) = hex_vec[index];
+        seeds.push(VoronoiSeed {
+            q,
+            r,
+            tile_type: TileType::Water,
+        });
     }
     
     // Generate grass seeds
     for _ in 0..grass_seeds {
-        if hex_count > 0 {
-            let index = get_random_index();
-            let (q, r) = hex_vec[index];
-            seeds.push(VoronoiSeed {
-                q,
-                r,
-                tile_type: TileType::Grass,
-            });
-        }
+        let index = get_index();
+        let (q, r) = hex_vec[index];
+        seeds.push(VoronoiSeed {
+            q,
+            r,
+            tile_type: TileType::Grass,
+        });
     }
     
     // If no seeds were generated, return empty array
