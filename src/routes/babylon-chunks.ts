@@ -1808,8 +1808,12 @@ const HEX_UTILS = {
    * @returns World position {x, z} in 3D space
    */
   hexToWorld(q: number, r: number, hexSize: number): { x: number; z: number } {
-    const x = hexSize * (Math.sqrt(3) * q + (Math.sqrt(3) / 2) * r);
-    const z = hexSize * ((3 / 2) * r);
+    // For pointy-top hexagons, spacing between centers:
+    // Horizontal spacing = sqrt(3) * hexSize
+    // Vertical spacing = 3/2 * hexSize
+    // The coefficients were half what they should be - doubling them
+    const x = hexSize * (Math.sqrt(3) * 2 * q + Math.sqrt(3) * r);
+    const z = hexSize * (3 * r);
     return { x, z };
   },
 
@@ -1830,8 +1834,10 @@ const HEX_UTILS = {
    */
   worldToHex(x: number, z: number, hexSize: number): HexCoord {
     // 1. Convert world coordinates to fractional axial coordinates
-    const fracQ = (Math.sqrt(3) / 3 * x - (1 / 3) * z) / hexSize;
-    const fracR = ((2 / 3) * z) / hexSize;
+    // Inverse of hexToWorld: x = hexSize * sqrt(3) * (2q + r), z = hexSize * 3 * r
+    // Solving: r = z / (3 * hexSize), q = (x / (hexSize * sqrt(3)) - r) / 2
+    const fracQ = x / (2 * hexSize * Math.sqrt(3)) - z / (6 * hexSize);
+    const fracR = z / (3 * hexSize);
     
     // 2. Convert to fractional cube coordinates
     const fracS = -fracQ - fracR;
