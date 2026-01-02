@@ -4040,6 +4040,12 @@ export const init = async (): Promise<void> => {
         // Update global rings
         currentRings = selectedRings;
         
+        // Reset camera to initial position and rotation
+        camera.alpha = 0; // Horizontal rotation
+        camera.beta = 0; // Vertical rotation (0 = straight down)
+        camera.radius = 50; // Distance from target
+        camera.setTarget(gridCenter); // Target center of grid
+        
         // Clear all state
         if (WASM_BABYLON_CHUNKS.wasmModule) {
           // Clear WASM grid
@@ -4058,7 +4064,7 @@ export const init = async (): Promise<void> => {
         }
         
         if (addLogEntry !== null) {
-          addLogEntry(`Rings changed to ${selectedRings}, cleared all state`, 'info');
+          addLogEntry(`Rings changed to ${selectedRings}, cleared all state and reset camera`, 'info');
         }
         
         // Re-render with new rings
