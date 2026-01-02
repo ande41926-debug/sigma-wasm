@@ -784,13 +784,19 @@ pub fn generate_voronoi_regions(
     
     // Early return pattern matching for error cases
     let hex_vec: Vec<(i32, i32)> = match hex_grid.as_slice() {
-        [] => return r#"[{"q":0,"r":0,"tileType":0}]"#.to_string(),
+        [] => {
+            // If grid is empty, return at least one default entry
+            return r#"[{"q":0,"r":0,"tileType":0}]"#.to_string();
+        },
         _ => hex_grid.iter().map(|h| (h.q, h.r)).collect(),
     };
     
     let hex_count = hex_vec.len();
     match hex_count {
-        0 => return r#"[{"q":999,"r":999,"tileType":0}]"#.to_string(),
+        0 => {
+            // If hex_vec is empty, return at least one default entry
+            return r#"[{"q":0,"r":0,"tileType":0}]"#.to_string();
+        },
         _ => {},
     }
     
@@ -861,7 +867,7 @@ pub fn generate_voronoi_regions(
                         tile_type: TileType::Grass,
                     });
                 },
-                None => return r#"[{"q":888,"r":888,"tileType":0}]"#.to_string(),
+                None => return r#"[{"q":0,"r":0,"tileType":0}]"#.to_string(),
             }
         },
         _ => {},
@@ -870,7 +876,7 @@ pub fn generate_voronoi_regions(
     // Assign each hex to nearest seed and build JSON
     // Ensure seeds is not empty (should be guaranteed by fallback above)
     let seeds_ref = match seeds.as_slice() {
-        [] => return r#"[{"q":777,"r":777,"tileType":0}]"#.to_string(),
+        [] => return r#"[{"q":0,"r":0,"tileType":0}]"#.to_string(),
         s => s,
     };
     
