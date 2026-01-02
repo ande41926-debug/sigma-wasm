@@ -3485,12 +3485,12 @@ export const init = async (): Promise<void> => {
     
     // Create materials for each tile type (will be applied per instance)
     // Use PBRMaterial for better support of per-instance colors with thin instances
+    // Set unlit=true to disable lighting so colors match the legend exactly
     for (const tileType of tileTypes) {
       const material = new PBRMaterial(`material_${tileType.type}`, scene);
       const color = getTileColor(tileType);
       material.albedoColor = color;
-      material.metallicF0Factor = 0.0;
-      material.roughness = 0.8;
+      material.unlit = true; // Disable lighting to match legend colors exactly
       materials.set(tileType.type, material);
     }
     
