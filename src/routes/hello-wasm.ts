@@ -29,6 +29,8 @@ let wasmModuleExports: {
   increment_counter: () => void;
   get_message: () => string;
   set_message: (message: string) => void;
+  get_fave_food: () => void;
+  set_fave_food: (food: string) => void;
 } | null = null;
 
 /**
