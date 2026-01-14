@@ -102,8 +102,10 @@ const getInitWasm = async (): Promise<unknown> => {
     const wasmInitFunc = moduleUnknown.wasm_init;
     const getCounterFunc = moduleUnknown.get_counter;
     const incrementCounterFunc = moduleUnknown.increment_counter;
-    const getMessageFunc = moduleUnknown.get_message;
+    const getconstMessageFunc = moduleUnknown.get_message;
     const setMessageFunc = moduleUnknown.set_message;
+    const getFaveFoodFunc = moduleUnknown.get_fave_food;
+    const setFaveFoodFunc = moduleUnknown.set_fave_food;
     
     if (typeof defaultFunc !== 'function') {
       throw new Error('default export is not a function');
@@ -139,6 +141,10 @@ const getInitWasm = async (): Promise<unknown> => {
       get_message: getMessageFunc as () => string,
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       set_message: setMessageFunc as (message: string) => void,
+       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      get_favorite_food: getFaveFoodFunc as () => string,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      set_favorite_food: setFaveFoodFunc as (food: string) => void,
     };
   }
   if (!wasmModuleExports) {
