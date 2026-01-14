@@ -56,7 +56,7 @@ impl HelloState {
     }
     
     /// Set a new food
-    fn set_fave_gum(&mut self, food: String) {
+    fn set_fave_food(&mut self, food: String) {
         self.food = food;
     }
 }
