@@ -273,8 +273,8 @@ function validateHelloModule(exports: unknown): WasmModuleHello | null {
     increment_counter: wasmModuleExports.increment_counter,
     get_message: wasmModuleExports.get_message,
     set_message: wasmModuleExports.set_message,
-    get_fave_food: wasmModuleExports.get_message,
-    set_fave_food: wasmModuleExports.set_message,
+    get_fave_food: wasmModuleExports.get_fave_food,
+    set_fave_food: wasmModuleExports.set_fave_food,
   };
 }
 
@@ -345,8 +345,10 @@ export const init = async (): Promise<void> => {
   const incrementBtn = document.getElementById('increment-btn');
   const messageInputEl = document.getElementById('message-input');
   const setMessageBtn = document.getElementById('set-message-btn');
+  const FaveFoodInputEl = document.getElementById('fave-food-input');
+  const setFaveFoodBtn = document.getElementById('set-fave-food-btn');
   
-  if (!counterDisplay || !messageDisplay || !incrementBtn || !messageInputEl || !setMessageBtn) {
+  if (!counterDisplay || !messageDisplay || !incrementBtn || !messageInputEl || !setMessageBtn ||!faveFoodDisplay || !faveFoodInputEl || !setFaveFoodBtn) {
     throw new Error('Required UI elements not found');
   }
   
@@ -363,6 +365,7 @@ export const init = async (): Promise<void> => {
   if (WASM_HELLO.wasmModule) {
     counterDisplay.textContent = WASM_HELLO.wasmModule.get_counter().toString();
     messageDisplay.textContent = WASM_HELLO.wasmModule.get_message();
+
   }
   
   // Set up event handlers
