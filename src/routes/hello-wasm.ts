@@ -358,6 +358,13 @@ export const init = async (): Promise<void> => {
   }
   
   const messageInput = messageInputEl;
+
+  // Type narrowing for input element
+  if (!(faveFoodInputEl instanceof HTMLInputElement)) {
+    throw new Error('fave-gum-input element is not an HTMLInputElement');
+  }
+  
+  const faveGumInput = faveFoodInputEl;
   
   // Update display with initial values
   // **Learning Point**: We call WASM functions directly from TypeScript.
@@ -365,7 +372,7 @@ export const init = async (): Promise<void> => {
   if (WASM_HELLO.wasmModule) {
     counterDisplay.textContent = WASM_HELLO.wasmModule.get_counter().toString();
     messageDisplay.textContent = WASM_HELLO.wasmModule.get_message();
-
+    faveFoodDisplay.textContent = WASM_HELLO.wasmModule.get_fave_food();
   }
   
   // Set up event handlers
@@ -402,3 +409,26 @@ export const init = async (): Promise<void> => {
   });
 };
 
+  setFaveFoodBtn.addEventListener('click', () => {
+    if (WASM_HELLO.wasmModule && faveFoodInput) {
+      const newFood = faveFoodInput.value.trim();
+      if (newFood) {
+        WASM_HELLO.wasmModule.set_fave_food(newFood);
+        faveFoodDisplay.textContent = WASM_HELLO.wasmModule.get_fave_food();
+        faveFoodInput.value = '';
+      }
+    }
+  });
+
+  // Allow Enter key to set message
+  faveFoodInput.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter' && WASM_HELLO.wasmModule) {
+      const newFood = faveFoodInput.value.trim();
+      if (newFood) {
+        WASM_HELLO.wasmModule.set_fave_food(newFood);
+        faveFoodDisplay.textContent = WASM_HELLO.wasmModule.get_fave_food();
+        faveFoodInput.value = '';
+      }
+    }
+  });
+};

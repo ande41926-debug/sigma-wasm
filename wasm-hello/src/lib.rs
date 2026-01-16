@@ -162,10 +162,10 @@ pub fn get_fave_food() -> String {
 /// 
 /// **To extend**: You could add validation, length limits, or formatting here.
 /// 
-/// @param food - The new message to set
+/// @param food - The new favorite food to set
 #[wasm_bindgen]
 pub fn set_fave_food(food: String) {
     let mut state = HELLO_STATE.lock().unwrap();
-    state.set_fave_food(message);
+    state.set_fave_food(food);
 }
 
