@@ -361,10 +361,10 @@ export const init = async (): Promise<void> => {
 
   // Type narrowing for input element
   if (!(faveFoodInputEl instanceof HTMLInputElement)) {
-    throw new Error('fave-gum-input element is not an HTMLInputElement');
+    throw new Error('fave-food-input element is not an HTMLInputElement');
   }
   
-  const faveGumInput = faveFoodInputEl;
+  const faveFoodInput = faveFoodInputEl;
   
   // Update display with initial values
   // **Learning Point**: We call WASM functions directly from TypeScript.
