@@ -273,6 +273,8 @@ function validateHelloModule(exports: unknown): WasmModuleHello | null {
     increment_counter: wasmModuleExports.increment_counter,
     get_message: wasmModuleExports.get_message,
     set_message: wasmModuleExports.set_message,
+    get_fave_food: wasmModuleExports.get_message,
+    set_fave_food: wasmModuleExports.set_message,
   };
 }
 
