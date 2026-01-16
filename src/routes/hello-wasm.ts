@@ -145,7 +145,7 @@ const getInitWasm = async (): Promise<unknown> => {
     if (typeof setFaveFoodFunc !== 'function') {
       throw new Error('set_fave_food export is not a function');
     }
-    
+
     // TypeScript can't narrow Function to specific signatures after validation
     // Runtime validation ensures these are safe
     wasmModuleExports = {
@@ -162,9 +162,9 @@ const getInitWasm = async (): Promise<unknown> => {
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       set_message: setMessageFunc as (message: string) => void,
        // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      get_favorite_food: getFaveFoodFunc as () => string,
+      get_fave_food: getFaveFoodFunc as () => string,
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-      set_favorite_food: setFaveFoodFunc as (food: string) => void,
+      set_fave_food: setFaveFoodFunc as (food: string) => void,
     };
   }
   if (!wasmModuleExports) {
