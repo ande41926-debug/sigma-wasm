@@ -243,6 +243,12 @@ function validateHelloModule(exports: unknown): WasmModuleHello | null {
     if (typeof wasmModuleExports.set_message !== 'function') {
       missingExports.push('set_message (function)');
     }
+    if (typeof wasmModuleExports.get_fave_food !== 'function') {
+      missingExports.push('get_fave_food (function)');
+    }
+    if (typeof wasmModuleExports.set_fave_food !== 'function') {
+      missingExports.push('set_fave_food (function)');
+    }
   }
   
   if (missingExports.length > 0) {
