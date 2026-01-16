@@ -139,6 +139,12 @@ const getInitWasm = async (): Promise<unknown> => {
     if (typeof setMessageFunc !== 'function') {
       throw new Error('set_message export is not a function');
     }
+    if (typeof getFaveFoodFunc !== 'function') {
+      throw new Error('get_fave_food export is not a function');
+    }
+    if (typeof setFaveFoodFunc !== 'function') {
+      throw new Error('set_fave_food export is not a function');
+    }
     
     // TypeScript can't narrow Function to specific signatures after validation
     // Runtime validation ensures these are safe
