@@ -25,7 +25,7 @@ impl HelloState {
     fn new() -> Self {
         HelloState {
             counter: 0,
-            message: String::from("Sigma is so sigma!"),
+            message: String::from("Sigma!"),
             food:String::from("Pizza"),
         }
     }
