@@ -73,6 +73,12 @@ const getInitWasm = async (): Promise<unknown> => {
     if ('set_message' in moduleUnknown) {
       moduleKeys.push('set_message');
     }
+    if ('get_fave_food' in moduleUnknown) {
+      moduleKeys.push('get_fave_food');
+    }
+    if ('set_fave_food' in moduleUnknown) {
+      moduleKeys.push('set_fave_food');
+    }
     
     // Get all keys for error messages
     const allKeys = Object.keys(moduleUnknown);
@@ -96,6 +102,12 @@ const getInitWasm = async (): Promise<unknown> => {
     }
     if (!('set_message' in moduleUnknown) || typeof moduleUnknown.set_message !== 'function') {
       throw new Error(`Module missing 'set_message' export. Available: ${allKeys.join(', ')}`);
+    }
+    if (!('get_fave_food' in moduleUnknown) || typeof moduleUnknown.get_fave_food !== 'function') {
+      throw new Error(`Module missing 'get_fave_food' export. Available: ${allKeys.join(', ')}`);
+    }
+    if (!('set_fave_food' in moduleUnknown) || typeof moduleUnknown.set_fave_food !== 'function') {
+      throw new Error(`Module missing 'set_fave_food' export. Available: ${allKeys.join(', ')}`);
     }
     
     // Extract and assign functions - we've validated they exist and are functions above
