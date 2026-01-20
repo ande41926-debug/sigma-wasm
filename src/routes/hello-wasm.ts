@@ -346,7 +346,7 @@ export const init = async (): Promise<void> => {
   const incrementBtn = document.getElementById('increment-btn');
   const messageInputEl = document.getElementById('message-input');
   const setMessageBtn = document.getElementById('set-message-btn');
-  const FaveFoodInputEl = document.getElementById('fave-food-input');
+  const faveFoodInputEl = document.getElementById('fave-food-input');
   const setFaveFoodBtn = document.getElementById('set-fave-food-btn');
   
   if (!counterDisplay || !messageDisplay || !incrementBtn || !messageInputEl || !setMessageBtn ||!faveFoodDisplay || !faveFoodInputEl || !setFaveFoodBtn) {
