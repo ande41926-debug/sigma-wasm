@@ -342,6 +342,7 @@ export const init = async (): Promise<void> => {
   // Get UI elements
   const counterDisplay = document.getElementById('counter-display');
   const messageDisplay = document.getElementById('message-display');
+  const faveFoodDisplay = document.getElementById('fave-gum-display')
   const incrementBtn = document.getElementById('increment-btn');
   const messageInputEl = document.getElementById('message-input');
   const setMessageBtn = document.getElementById('set-message-btn');
