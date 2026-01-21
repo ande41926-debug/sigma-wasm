@@ -408,7 +408,6 @@ export const init = async (): Promise<void> => {
       }
     }
   });
-};
 
   setFaveFoodBtn.addEventListener('click', () => {
     if (WASM_HELLO.wasmModule && faveFoodInput) {
@@ -428,7 +427,7 @@ export const init = async (): Promise<void> => {
       if (newFood) {
         WASM_HELLO.wasmModule.set_fave_food(newFood);
         faveFoodDisplay.textContent = WASM_HELLO.wasmModule.get_fave_food();
-        faveFoodInput.value = '';
+        faveFoodInput.vaue = '';
       }
     }
   });
