@@ -116,7 +116,7 @@ const getInitWasm = async (): Promise<unknown> => {
     const wasmInitFunc = moduleUnknown.wasm_init;
     const getCounterFunc = moduleUnknown.get_counter;
     const incrementCounterFunc = moduleUnknown.increment_counter;
-    const getconstMessageFunc = moduleUnknown.get_message;
+    const getMessageFunc = moduleUnknown.get_message;
     const setMessageFunc = moduleUnknown.set_message;
     const getFaveFoodFunc = moduleUnknown.get_fave_food;
     const setFaveFoodFunc = moduleUnknown.set_fave_food;
