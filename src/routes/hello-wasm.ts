@@ -349,7 +349,10 @@ export const init = async (): Promise<void> => {
   const faveFoodInputEl = document.getElementById('fave-food-input');
   const setFaveFoodBtn = document.getElementById('set-fave-food-btn');
   
-  if (!counterDisplay || !messageDisplay || !incrementBtn || !messageInputEl || !setMessageBtn ||!faveFoodDisplay || !faveFoodInputEl || !setFaveFoodBtn) {
+  if (!counterDisplay || !messageDisplay || 
+    !incrementBtn || !messageInputEl || !setMessageBtn || 
+    !faveFoodDisplay || !faveFoodInputEl || !setFaveFoodBtn
+  ) {
     throw new Error('Required UI elements not found');
   }
   
