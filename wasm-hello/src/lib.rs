@@ -143,26 +143,28 @@ pub fn set_message(message: String) {
     let mut state = HELLO_STATE.lock().unwrap();
     state.set_message(message);
 }
+
+/// Get the current food
+///
 /// **Learning Point**: Strings in Rust need to be converted to JavaScript strings.
 /// `wasm-bindgen` handles this automatically when you return a `String` from a
 /// `#[wasm_bindgen]` function.
 /// 
-/// @returns The curre/// Get the current message
-/// nt message as a JavaScript string
+/// @returns The current food as a Javascript string
 #[wasm_bindgen]
 pub fn get_fave_food() -> String {
     let state = HELLO_STATE.lock().unwrap();
     state.get_fave_food()
 }
-/// Set a favorite food
+
+/// Set a new food
 /// 
 /// **Learning Point**: JavaScript strings are automatically converted to Rust `String`
-/// when passed as parameters to 
-// `#[wasm_bindgen]` functions.
+/// when passed as parameters to `#[wasm_bindgen]` functions.
 /// 
 /// **To extend**: You could add validation, length limits, or formatting here.
 /// 
-/// @param food - The new favorite food to set
+/// @param food - The new food to set
 #[wasm_bindgen]
 pub fn set_fave_food(food: String) {
     let mut state = HELLO_STATE.lock().unwrap();
