@@ -31,6 +31,8 @@ let wasmModuleExports: {
   set_message: (message: string) => void;
   get_fave_food: () => string;
   set_fave_food: (food: string) => void;
+  get_fave_sport: () => string;
+  set_fave_sport: (sport: string) => void;
 } | null = null;
 
 /**
@@ -79,6 +81,12 @@ const getInitWasm = async (): Promise<unknown> => {
     if ('set_fave_food' in moduleUnknown) {
       moduleKeys.push('set_fave_food');
     }
+    if ('get_fave_sport' in moduleUnknown) {
+      moduleKeys.push('get_fave_sport');
+    }
+    if ('set_fave_sport' in moduleUnknown) {
+      moduleKeys.push('set_fave_sport');
+    }
     
     // Get all keys for error messages
     const allKeys = Object.keys(moduleUnknown);
@@ -109,6 +117,12 @@ const getInitWasm = async (): Promise<unknown> => {
     if (!('set_fave_food' in moduleUnknown) || typeof moduleUnknown.set_fave_food !== 'function') {
       throw new Error(`Module missing 'set_fave_food' export. Available: ${allKeys.join(', ')}`);
     }
+    if (!('get_fave_sport' in moduleUnknown) || typeof moduleUnknown.get_fave_sport !== 'function') {
+      throw new Error(`Module missing 'get_fave_sport' export. Available: ${allKeys.join(', ')}`);
+    }
+    if (!('set_fave_sport' in moduleUnknown) || typeof moduleUnknown.set_fave_sport !== 'function') {
+      throw new Error(`Module missing 'set_fave_sport' export. Available: ${allKeys.join(', ')}`);
+    }
     
     // Extract and assign functions - we've validated they exist and are functions above
     // Access properties directly after validation
@@ -120,6 +134,8 @@ const getInitWasm = async (): Promise<unknown> => {
     const setMessageFunc = moduleUnknown.set_message;
     const getFaveFoodFunc = moduleUnknown.get_fave_food;
     const setFaveFoodFunc = moduleUnknown.set_fave_food;
+    const getFaveSportFunc = moduleUnknown.get_fave_sport;
+    const setFaveSportFunc = moduleUnknown.set_fave_sport;
     
     if (typeof defaultFunc !== 'function') {
       throw new Error('default export is not a function');
@@ -145,6 +161,12 @@ const getInitWasm = async (): Promise<unknown> => {
     if (typeof setFaveFoodFunc !== 'function') {
       throw new Error('set_fave_food export is not a function');
     }
+    if (typeof getFaveSportFunc !== 'function') {
+      throw new Error('get_fave_sport export is not a function');
+    }
+    if (typeof setFaveSportFunc !== 'function') {
+      throw new Error('set_fave_sport export is not a function');
+    }
 
     // TypeScript can't narrow Function to specific signatures after validation
     // Runtime validation ensures these are safe
@@ -165,6 +187,10 @@ const getInitWasm = async (): Promise<unknown> => {
       get_fave_food: getFaveFoodFunc as () => string,
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       set_fave_food: setFaveFoodFunc as (food: string) => void,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      get_fave_sport: getFaveSportFunc as () => string,
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+      set_fave_sport: setFaveSportFunc as (sport: string) => void,
     };
   }
   if (!wasmModuleExports) {
@@ -249,6 +275,12 @@ function validateHelloModule(exports: unknown): WasmModuleHello | null {
     if (typeof wasmModuleExports.set_fave_food !== 'function') {
       missingExports.push('set_fave_food (function)');
     }
+    if (typeof wasmModuleExports.get_fave_sport !== 'function') {
+      missingExports.push('get_fave_sport (function)');
+    }
+    if (typeof wasmModuleExports.set_fave_sport !== 'function') {
+      missingExports.push('set_fave_sport (function)');
+    }
   }
   
   if (missingExports.length > 0) {
@@ -275,6 +307,8 @@ function validateHelloModule(exports: unknown): WasmModuleHello | null {
     set_message: wasmModuleExports.set_message,
     get_fave_food: wasmModuleExports.get_fave_food,
     set_fave_food: wasmModuleExports.set_fave_food,
+    get_fave_sport: wasmModuleExports.get_fave_sport,
+    set_fave_sport: wasmModuleExports.set_fave_sport,
   };
 }
 
@@ -342,16 +376,20 @@ export const init = async (): Promise<void> => {
   // Get UI elements
   const counterDisplay = document.getElementById('counter-display');
   const messageDisplay = document.getElementById('message-display');
-  const faveFoodDisplay = document.getElementById('fave-food-display')
+  const faveFoodDisplay = document.getElementById('fave-food-display');
+  const faveSportDisplay = document.getElementById('fave-sport-display');
   const incrementBtn = document.getElementById('increment-btn');
   const messageInputEl = document.getElementById('message-input');
   const setMessageBtn = document.getElementById('set-message-btn');
   const faveFoodInputEl = document.getElementById('fave-food-input');
   const setFaveFoodBtn = document.getElementById('set-fave-food-btn');
+  const faveSportInputEl = document.getElementById('fave-sport-input');
+  const setFaveSportBtn = document.getElementById('set-fave-sport-btn');
   
   if (!counterDisplay || !messageDisplay || 
     !incrementBtn || !messageInputEl || !setMessageBtn || 
-    !faveFoodDisplay || !faveFoodInputEl || !setFaveFoodBtn
+    !faveFoodDisplay || !faveFoodInputEl || !setFaveFoodBtn ||
+    !faveSportDisplay || !faveSportInputEl || !setFaveSportBtn
   ) {
     throw new Error('Required UI elements not found');
   }
@@ -370,6 +408,13 @@ export const init = async (): Promise<void> => {
   
   const faveFoodInput = faveFoodInputEl;
   
+  // Type narrowing for input element
+  if (!(faveSportInputEl instanceof HTMLInputElement)) {
+    throw new Error('fave-sport-input element is not an HTMLInputElement');
+  }
+  
+  const faveSportInput = faveSportInputEl;
+  
   // Update display with initial values
   // **Learning Point**: We call WASM functions directly from TypeScript.
   // The wasm-bindgen generated code handles the marshalling between JS and WASM.
@@ -377,6 +422,7 @@ export const init = async (): Promise<void> => {
     counterDisplay.textContent = WASM_HELLO.wasmModule.get_counter().toString();
     messageDisplay.textContent = WASM_HELLO.wasmModule.get_message();
     faveFoodDisplay.textContent = WASM_HELLO.wasmModule.get_fave_food();
+    faveSportDisplay.textContent = WASM_HELLO.wasmModule.get_fave_sport();
   }
   
   // Set up event handlers
@@ -423,14 +469,37 @@ export const init = async (): Promise<void> => {
     }
   });
 
-  // Allow Enter key to set message
+  // Allow Enter key to set food
   faveFoodInput.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Enter' && WASM_HELLO.wasmModule) {
       const newFood = faveFoodInput.value.trim();
       if (newFood) {
         WASM_HELLO.wasmModule.set_fave_food(newFood);
         faveFoodDisplay.textContent = WASM_HELLO.wasmModule.get_fave_food();
-        faveFoodInput.vaue = '';
+        faveFoodInput.value = '';
+      }
+    }
+  });
+
+  setFaveSportBtn.addEventListener('click', () => {
+    if (WASM_HELLO.wasmModule && faveSportInput) {
+      const newSport = faveSportInput.value.trim();
+      if (newSport) {
+        WASM_HELLO.wasmModule.set_fave_sport(newSport);
+        faveSportDisplay.textContent = WASM_HELLO.wasmModule.get_fave_sport();
+        faveSportInput.value = '';
+      }
+    }
+  });
+
+  // Allow Enter key to set sport
+  faveSportInput.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter' && WASM_HELLO.wasmModule) {
+      const newSport = faveSportInput.value.trim();
+      if (newSport) {
+        WASM_HELLO.wasmModule.set_fave_sport(newSport);
+        faveSportDisplay.textContent = WASM_HELLO.wasmModule.get_fave_sport();
+        faveSportInput.value = '';
       }
     }
   });

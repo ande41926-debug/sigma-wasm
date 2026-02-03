@@ -16,8 +16,10 @@ struct HelloState {
     counter: i32,
     /// Message string that can be set and retrieved
     message: String,
-     /// Food string that can be set and retrieved
+    /// Food string that can be set and retrieved
     food: String,
+    /// Sport string that can be set and retrieved
+    sport: String,
 }
 
 impl HelloState {
@@ -27,6 +29,7 @@ impl HelloState {
             counter: 0,
             message: String::from("Rust WASM is so Sigma!"),
             food: String::from("Pizza"),
+            sport: String::from("Basketball"),
         }
     }
     
@@ -58,6 +61,16 @@ impl HelloState {
     /// Set a new food
     fn set_fave_food(&mut self, food: String) {
         self.food = food;
+    }
+
+    /// Get the current sport
+    fn get_fave_sport(&self) -> String {
+        self.sport.clone()
+    }
+    
+    /// Set a new sport
+    fn set_fave_sport(&mut self, sport: String) {
+        self.sport = sport;
     }
 }
 
@@ -169,5 +182,32 @@ pub fn get_fave_food() -> String {
 pub fn set_fave_food(food: String) {
     let mut state = HELLO_STATE.lock().unwrap();
     state.set_fave_food(food);
+}
+
+/// Get the current sport
+///
+/// **Learning Point**: Strings in Rust need to be converted to JavaScript strings.
+/// `wasm-bindgen` handles this automatically when you return a `String` from a
+/// `#[wasm_bindgen]` function.
+/// 
+/// @returns The current sport as a JavaScript string
+#[wasm_bindgen]
+pub fn get_fave_sport() -> String {
+    let state = HELLO_STATE.lock().unwrap();
+    state.get_fave_sport()
+}
+
+/// Set a new sport
+/// 
+/// **Learning Point**: JavaScript strings are automatically converted to Rust `String`
+/// when passed as parameters to `#[wasm_bindgen]` functions.
+/// 
+/// **To extend**: You could add validation, length limits, or formatting here.
+/// 
+/// @param sport - The new sport to set
+#[wasm_bindgen]
+pub fn set_fave_sport(sport: String) {
+    let mut state = HELLO_STATE.lock().unwrap();
+    state.set_fave_sport(sport);
 }
 

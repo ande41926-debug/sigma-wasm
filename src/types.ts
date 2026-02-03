@@ -197,6 +197,8 @@ export interface WasmModuleHello {
   set_message(message: string): void;
   get_fave_food(): string;
   set_fave_food(food: string): void;
+  get_fave_sport(): string;
+  set_fave_sport(sport: string): void;
 }
 
 export interface WasmHello {
