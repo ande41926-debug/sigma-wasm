@@ -26,7 +26,7 @@ impl HelloState {
         HelloState {
             counter: 0,
             message: String::from("Sigma!"),
-            food:String::from("Pizza"),
+            food: String::from("Pizza"),
         }
     }
     
