@@ -48,7 +48,6 @@ const getInitWasm = async (): Promise<unknown> => {
   if (!wasmModuleExports) {
     // Import only when first called - get both init and exported functions
     // Note: The path will be rewritten by vite plugin to absolute path in production
-    // @ts-ignore:
     const moduleUnknown: unknown = await import('../../pkg/wasm_hello/wasm_hello.js');
     
     // Validate module has required exports
